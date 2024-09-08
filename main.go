@@ -11,6 +11,9 @@ func main() {
 	// Loading the configuration
 	conf := shared.LoadConfig()
 
+	// Initialize the logger
+	shared.InitLogger(conf)
+
 	// Connecting to the database
 	context.ConnectDB()
 

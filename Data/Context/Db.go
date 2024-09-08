@@ -17,7 +17,7 @@ func ConnectDB() *gorm.DB {
 		log.Fatalf("DB connection error: %v", err)
 	}
 
-	// Автоматическое создание таблиц на основе сущностей
+	// Automatic creation of tables based on entities
 	err = db.AutoMigrate(&entities.User{}, &entities.Organization{}, &entities.OrganizationResponsible{}, &entities.Tender{}, &entities.Bid{})
 	if err != nil {
 		log.Fatalf("Migration failed: %v", err)

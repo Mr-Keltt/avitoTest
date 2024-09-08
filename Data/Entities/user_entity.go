@@ -11,7 +11,7 @@ type User struct {
 	LastName      string         `gorm:"size:50"`
 	CreatedAt     time.Time      `gorm:"autoCreateTime"`
 	UpdatedAt     time.Time      `gorm:"autoUpdateTime"`
-	Organizations []Organization `gorm:"many2many:organization_responsibles;"` // связь многие-ко-многим через промежуточную таблицу
+	Organizations []Organization `gorm:"many2many:organization_responsibles;"`
 	Tenders       []Tender       `gorm:"foreignKey:CreatorID"`
 	Bids          []Bid          `gorm:"foreignKey:CreatorID"`
 }
