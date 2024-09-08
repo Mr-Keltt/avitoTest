@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  avito_test_postgresql:
+    ports:
+      - "45432:5432"
+    networks:
+      - shared_avito_test_net
+    volumes:      
+      - postgres-data:/var/lib/postgresql/data
+    env_file:
+      - .env
+    
+  avito_test:
+    ports:
+      - "8080:8080"
+    networks:
+      - shared_avito_test_net
+    env_file:
+      - .env
+  
+
+networks:
+  shared_avito_test_net:
+    name: avito_test
+    driver: bridge
+
+volumes:
+  postgres-data:

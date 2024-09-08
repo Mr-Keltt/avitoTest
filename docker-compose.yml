@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+
+  avito_test_postgresql:
+    image: postgres:latest
+            
+  avito_test:
+    image: ${DOCKER_REGISTRY-}avito_test
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - avito_test_postgresql
