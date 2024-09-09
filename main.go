@@ -3,12 +3,11 @@ package main
 
 import (
 	"avitoTest/api"
-	"avitoTest/data/context"
-	"avitoTest/data/repositories/organization_repository"
-	"avitoTest/services/organization_service"
 	"avitoTest/shared"
 	"log"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 func main() {
@@ -19,18 +18,22 @@ func main() {
 	shared.InitLogger(conf)
 
 	// Connecting to the database
-	db := context.ConnectDB()
+	//db := context.ConnectDB()
 
 	// We create a repository and organization service
-	orgRepo := organization_repository.NewOrganizationRepository(db)
-	orgService := organization_service.NewOrganizationService(orgRepo)
+	//orgRepo := organization_repository.NewOrganizationRepository(db)
+	//orgService := organization_service.NewOrganizationService(orgRepo)
 
-	// Creating a router
-	r := api.NewRouter(orgService)
+	// Creating a new router
+	router := mux.NewRouter()
 
-	// Starting the server
-	log.Printf("Server started on %s", conf.ServerAddress)
-	if err := http.ListenAndServe(conf.ServerAddress, r); err != nil {
-		log.Fatalf("Could not start server: %s", err.Error())
+	// Initializing routes
+	api.InitRoutes(router)
+
+	// Запуск HTTP-сервера
+	serverAddress := conf.ServerAddress
+	log.Printf("Starting server on %s...", serverAddress)
+	if err := http.ListenAndServe(serverAddress, router); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
 	}
 }

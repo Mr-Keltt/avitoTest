@@ -1,24 +1,12 @@
 package api
 
 import (
-	"avitoTest/api/handlers/organization_handler"
-	"avitoTest/services/organization_service"
+	"avitoTest/api/handlers/ping_handler"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/gorilla/mux"
 )
 
-func NewRouter(orgService organization_service.OrganizationService) *chi.Mux {
-	r := chi.NewRouter()
-
-	orgHandler := organization_handler.NewOrganizationHandler(orgService)
-
-	r.Route("/api/organizations", func(r chi.Router) {
-		r.Post("/", orgHandler.CreateOrganization)
-		r.Get("/", orgHandler.GetOrganizations)
-		r.Get("/{id}", orgHandler.GetOrganizationByID)
-		r.Put("/{id}", orgHandler.UpdateOrganization)
-		r.Delete("/{id}", orgHandler.DeleteOrganization)
-	})
-
-	return r
+// InitRoutes - initializes API routes
+func InitRoutes(router *mux.Router) {
+	router.HandleFunc("/api/ping", ping_handler.PingHandler).Methods("GET")
 }
