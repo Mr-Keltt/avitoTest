@@ -1,22 +1,41 @@
-# Dockerfile
+# Go image based on Debian (default Go image is often Debian-based)
+FROM golang:1.23.1 AS builder
 
-# Use official Golang image as a base
-FROM golang:1.23.1
+# Update and install git
+RUN apt-get update && apt-get install -y git
 
-# Set the Current Working Directory inside the container
+# Set environment variables
+ENV GO111MODULE=on \
+    CGO_ENABLED=0 \
+    GOOS=linux \
+    GOARCH=amd64
+
+# Set the working directory inside the container
 WORKDIR /app
 
-# Copy everything from the current directory to the container's working directory
+# Copy go.mod and go.sum
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy the rest of the application
 COPY . .
 
-# Download Go modules
-RUN go mod tidy
+# Build the Go binary
+RUN go build -o /go-tender-app main.go
 
-# Build the Go app
-RUN go build -o main .
+# Use a minimal image for the final stage
+FROM debian:bullseye-slim
 
-# Expose port 8080 to the outside world
+# Set working directory for binary
+WORKDIR /root/
+
+# Copy the compiled Go binary from the builder stage
+COPY --from=builder /go-tender-app .
+
+# Expose the service port (matching SERVER_ADDRESS)
 EXPOSE 8080
 
-# Command to run the executable
-CMD ["./main"]
+# Define entrypoint to start the app
+CMD ["./go-tender-app"]

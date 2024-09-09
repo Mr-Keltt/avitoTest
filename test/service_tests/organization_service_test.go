@@ -8,7 +8,7 @@ import (
 	"avitoTest/data/entities"
 	"avitoTest/data/repositories/organization_repository"
 	"avitoTest/services/organization_service"
-	"avitoTest/services/organization_service/models"
+	"avitoTest/services/organization_service/service_models"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -22,6 +22,14 @@ type MockOrganizationRepository struct {
 func (m *MockOrganizationRepository) Create(ctx context.Context, org *entities.Organization) error {
 	args := m.Called(ctx, org)
 	return args.Error(0)
+}
+
+func (m *MockOrganizationRepository) GetAll(ctx context.Context) ([]entities.Organization, error) {
+	args := m.Called(ctx)
+	if orgs, ok := args.Get(0).([]entities.Organization); ok {
+		return orgs, args.Error(1)
+	}
+	return nil, args.Error(1)
 }
 
 func (m *MockOrganizationRepository) FindByID(ctx context.Context, id int) (*entities.Organization, error) {
@@ -46,7 +54,7 @@ func TestCreateOrganization_Success(t *testing.T) {
 	mockRepo := new(MockOrganizationRepository)
 	service := organization_service.NewOrganizationService(mockRepo)
 
-	orgCreate := models.OrganizationCreateModel{
+	orgCreate := service_models.OrganizationCreateModel{
 		Name:        "My Organization",
 		Description: "Test Description",
 		Type:        "LLC",
@@ -80,7 +88,7 @@ func TestCreateOrganization_ValidationFail(t *testing.T) {
 	mockRepo := new(MockOrganizationRepository)
 	service := organization_service.NewOrganizationService(mockRepo)
 
-	orgCreate := models.OrganizationCreateModel{
+	orgCreate := service_models.OrganizationCreateModel{
 		Name:        "",
 		Description: "Test Description",
 		Type:        "LLC",
@@ -90,6 +98,53 @@ func TestCreateOrganization_ValidationFail(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed on the 'required' tag")
+}
+
+func TestGetOrganizations_Success(t *testing.T) {
+	mockRepo := new(MockOrganizationRepository)
+	service := organization_service.NewOrganizationService(mockRepo)
+
+	expectedEntities := []entities.Organization{
+		{
+			ID:          1,
+			Name:        "Org 1",
+			Description: "Description 1",
+			Type:        entities.OrganizationType("LLC"),
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		},
+		{
+			ID:          2,
+			Name:        "Org 2",
+			Description: "Description 2",
+			Type:        entities.OrganizationType("Corporation"),
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		},
+	}
+
+	mockRepo.On("GetAll", mock.Anything).Return(expectedEntities, nil)
+
+	result, err := service.GetOrganizations(context.Background())
+
+	assert.NoError(t, err)
+	assert.Len(t, result, 2)
+	assert.Equal(t, expectedEntities[0].ID, result[0].ID)
+	assert.Equal(t, expectedEntities[1].ID, result[1].ID)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestGetOrganizations_Failure(t *testing.T) {
+	mockRepo := new(MockOrganizationRepository)
+	service := organization_service.NewOrganizationService(mockRepo)
+
+	mockRepo.On("GetAll", mock.Anything).Return(nil, organization_repository.ErrOrganizationNotFound)
+
+	_, err := service.GetOrganizations(context.Background())
+
+	assert.Error(t, err)
+	assert.Equal(t, organization_repository.ErrOrganizationNotFound, err)
+	mockRepo.AssertExpectations(t)
 }
 
 func TestGetOrganizationByID_Success(t *testing.T) {
@@ -132,7 +187,7 @@ func TestUpdateOrganization_Success(t *testing.T) {
 	mockRepo := new(MockOrganizationRepository)
 	service := organization_service.NewOrganizationService(mockRepo)
 
-	orgUpdate := models.OrganizationUpdateModel{
+	orgUpdate := service_models.OrganizationUpdateModel{
 		ID:          1,
 		Name:        "Updated Organization",
 		Description: "Updated Description",

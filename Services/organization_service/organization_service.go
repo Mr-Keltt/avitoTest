@@ -1,4 +1,3 @@
-// services/organization_service/organization_service.go
 package organization_service
 
 import (
@@ -8,7 +7,7 @@ import (
 
 	"avitoTest/data/entities"
 	"avitoTest/data/repositories/organization_repository"
-	"avitoTest/services/organization_service/models"
+	models "avitoTest/services/organization_service/service_models"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -16,6 +15,7 @@ import (
 type OrganizationService interface {
 	CreateOrganization(ctx context.Context, org models.OrganizationCreateModel) (*models.OrganizationModel, error)
 	UpdateOrganization(ctx context.Context, org models.OrganizationUpdateModel) (*models.OrganizationModel, error)
+	GetOrganizations(ctx context.Context) ([]*models.OrganizationModel, error)
 	GetOrganizationByID(ctx context.Context, id int) (*models.OrganizationModel, error)
 	DeleteOrganization(ctx context.Context, id int) error
 }
@@ -86,6 +86,29 @@ func (s *organizationService) UpdateOrganization(ctx context.Context, org models
 		CreatedAt:   entity.CreatedAt,
 		UpdatedAt:   entity.UpdatedAt,
 	}, nil
+}
+
+func (s *organizationService) GetOrganizations(ctx context.Context) ([]*models.OrganizationModel, error) {
+	entities, err := s.repo.GetAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Преобразование данных из сущностей в модели
+	var organizations []*models.OrganizationModel
+	for _, entity := range entities {
+		orgModel := &models.OrganizationModel{
+			ID:          entity.ID,
+			Name:        entity.Name,
+			Description: entity.Description,
+			Type:        string(entity.Type),
+			CreatedAt:   entity.CreatedAt,
+			UpdatedAt:   entity.UpdatedAt,
+		}
+		organizations = append(organizations, orgModel)
+	}
+
+	return organizations, nil
 }
 
 func (s *organizationService) GetOrganizationByID(ctx context.Context, id int) (*models.OrganizationModel, error) {

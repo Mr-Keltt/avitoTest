@@ -22,6 +22,14 @@ func (r *OrganizationRepositoryGorm) Create(ctx context.Context, org *entities.O
 	return r.db.WithContext(ctx).Create(org).Error
 }
 
+func (r *OrganizationRepositoryGorm) GetAll(ctx context.Context) ([]entities.Organization, error) {
+	var organizations []entities.Organization
+	if err := r.db.WithContext(ctx).Find(&organizations).Error; err != nil {
+		return nil, err
+	}
+	return organizations, nil
+}
+
 func (r *OrganizationRepositoryGorm) FindByID(ctx context.Context, id int) (*entities.Organization, error) {
 	var org entities.Organization
 	if err := r.db.WithContext(ctx).First(&org, id).Error; err != nil {
