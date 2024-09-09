@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
+	"github.com/gorilla/mux"
 )
 
 type OrganizationHandler struct {
@@ -58,7 +58,9 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 }
 
 func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.Request) {
-	idParam := chi.URLParam(r, "id")
+	vars := mux.Vars(r)
+	idParam := vars["id"]
+
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
 		render.Render(w, r, shared.ErrInvalidRequest(err))
@@ -120,7 +122,9 @@ func (h *OrganizationHandler) GetOrganizations(w http.ResponseWriter, r *http.Re
 }
 
 func (h *OrganizationHandler) GetOrganizationByID(w http.ResponseWriter, r *http.Request) {
-	idParam := chi.URLParam(r, "id")
+	vars := mux.Vars(r)
+	idParam := vars["id"]
+
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
 		render.Render(w, r, shared.ErrInvalidRequest(err))
@@ -144,7 +148,9 @@ func (h *OrganizationHandler) GetOrganizationByID(w http.ResponseWriter, r *http
 }
 
 func (h *OrganizationHandler) DeleteOrganization(w http.ResponseWriter, r *http.Request) {
-	idParam := chi.URLParam(r, "id")
+	vars := mux.Vars(r)
+	idParam := vars["id"]
+
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
 		render.Render(w, r, shared.ErrInvalidRequest(err))

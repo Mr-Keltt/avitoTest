@@ -1,8 +1,10 @@
-// main.go
 package main
 
 import (
 	"avitoTest/api"
+	"avitoTest/data/context"
+	"avitoTest/data/repositories/organization_repository"
+	"avitoTest/services/organization_service"
 	"avitoTest/shared"
 	"log"
 	"net/http"
@@ -11,26 +13,34 @@ import (
 )
 
 func main() {
-	// Loading the configuration
+	// Loading configuration from environment variables
 	conf := shared.LoadConfig()
 
 	// Initializing the logger
 	shared.InitLogger(conf)
 
 	// Connecting to the database
-	//db := context.ConnectDB()
+	db, err := context.ConnectDB(conf.PostgresConn)
+	if err != nil {
+		log.Fatalf("Failed to connect to the database: %v", err)
+	}
+	sqlDB, err := db.DB() // We get *sql. DB to close connection
+	if err != nil {
+		log.Fatalf("Failed to get sql.DB: %v", err)
+	}
+	defer sqlDB.Close()
 
 	// We create a repository and organization service
-	//orgRepo := organization_repository.NewOrganizationRepository(db)
-	//orgService := organization_service.NewOrganizationService(orgRepo)
+	orgRepo := organization_repository.NewOrganizationRepository(db)
+	orgService := organization_service.NewOrganizationService(orgRepo)
 
-	// Creating a new router
+	// Creating a router
 	router := mux.NewRouter()
 
-	// Initializing routes
-	api.InitRoutes(router)
+	// We initialize routes, passing the necessary services
+	api.InitRoutes(router, orgService)
 
-	// Запуск HTTP-сервера
+	// Starting the HTTP server
 	serverAddress := conf.ServerAddress
 	log.Printf("Starting server on %s...", serverAddress)
 	if err := http.ListenAndServe(serverAddress, router); err != nil {
