@@ -1,4 +1,4 @@
-package handler_models
+package organization_handler_models
 
 import "time"
 

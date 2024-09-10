@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"avitoTest/api/handlers/user_handler"
-	"avitoTest/api/handlers/user_handler/handler_models"
-	"avitoTest/services/user_service/models"
+	"avitoTest/api/handlers/user_handler/user_handler_models"
+	"avitoTest/services/user_service/user_models"
 
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -23,24 +23,24 @@ type MockUserService struct {
 	mock.Mock
 }
 
-func (m *MockUserService) CreateUser(ctx context.Context, user models.UserCreateModel) (*models.UserModel, error) {
+func (m *MockUserService) CreateUser(ctx context.Context, user user_models.UserCreateModel) (*user_models.UserModel, error) {
 	args := m.Called(ctx, user)
-	return args.Get(0).(*models.UserModel), args.Error(1)
+	return args.Get(0).(*user_models.UserModel), args.Error(1)
 }
 
-func (m *MockUserService) UpdateUser(ctx context.Context, user models.UserUpdateModel) (*models.UserModel, error) {
+func (m *MockUserService) UpdateUser(ctx context.Context, user user_models.UserUpdateModel) (*user_models.UserModel, error) {
 	args := m.Called(ctx, user)
-	return args.Get(0).(*models.UserModel), args.Error(1)
+	return args.Get(0).(*user_models.UserModel), args.Error(1)
 }
 
-func (m *MockUserService) GetUsers(ctx context.Context) ([]*models.UserModel, error) {
+func (m *MockUserService) GetUsers(ctx context.Context) ([]*user_models.UserModel, error) {
 	args := m.Called(ctx)
-	return args.Get(0).([]*models.UserModel), args.Error(1)
+	return args.Get(0).([]*user_models.UserModel), args.Error(1)
 }
 
-func (m *MockUserService) GetUserByID(ctx context.Context, id int) (*models.UserModel, error) {
+func (m *MockUserService) GetUserByID(ctx context.Context, id int) (*user_models.UserModel, error) {
 	args := m.Called(ctx, id)
-	return args.Get(0).(*models.UserModel), args.Error(1)
+	return args.Get(0).(*user_models.UserModel), args.Error(1)
 }
 
 func (m *MockUserService) DeleteUser(ctx context.Context, id int) error {
@@ -52,7 +52,7 @@ func TestCreateUser(t *testing.T) {
 	service := new(MockUserService)
 	handler := user_handler.NewUserHandler(service)
 
-	reqBody := &handler_models.CreateUserRequest{
+	reqBody := &user_handler_models.CreateUserRequest{
 		Username:  "jdoe",
 		FirstName: "John",
 		LastName:  "Doe",
@@ -62,7 +62,7 @@ func TestCreateUser(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
 
-	expectedResponse := &models.UserModel{
+	expectedResponse := &user_models.UserModel{
 		ID:        1,
 		Username:  "jdoe",
 		FirstName: "John",
@@ -77,7 +77,7 @@ func TestCreateUser(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, rr.Code)
 
-	var response handler_models.UserResponse
+	var response user_handler_models.UserResponse
 	json.Unmarshal(rr.Body.Bytes(), &response)
 
 	assert.Equal(t, expectedResponse.ID, response.ID)
@@ -92,7 +92,7 @@ func TestUpdateUser(t *testing.T) {
 	service := new(MockUserService)
 	handler := user_handler.NewUserHandler(service)
 
-	reqBody := &handler_models.UpdateUserRequest{
+	reqBody := &user_handler_models.UpdateUserRequest{
 		Username:  "jdoe_updated",
 		FirstName: "Johnathan",
 		LastName:  "Doe",
@@ -102,7 +102,7 @@ func TestUpdateUser(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
 
-	expectedResponse := &models.UserModel{
+	expectedResponse := &user_models.UserModel{
 		ID:        1,
 		Username:  "jdoe_updated",
 		FirstName: "Johnathan",
@@ -122,7 +122,7 @@ func TestUpdateUser(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
-	var response handler_models.UserResponse
+	var response user_handler_models.UserResponse
 	json.Unmarshal(rr.Body.Bytes(), &response)
 
 	assert.Equal(t, expectedResponse.ID, response.ID)
@@ -140,7 +140,7 @@ func TestGetUserByID(t *testing.T) {
 	req := httptest.NewRequest("GET", "/api/users/1", nil)
 	rr := httptest.NewRecorder()
 
-	expectedResponse := &models.UserModel{
+	expectedResponse := &user_models.UserModel{
 		ID:        1,
 		Username:  "jdoe",
 		FirstName: "John",
@@ -160,7 +160,7 @@ func TestGetUserByID(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
-	var response handler_models.UserResponse
+	var response user_handler_models.UserResponse
 	json.Unmarshal(rr.Body.Bytes(), &response)
 
 	assert.Equal(t, expectedResponse.ID, response.ID)

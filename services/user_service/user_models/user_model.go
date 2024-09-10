@@ -1,9 +1,10 @@
-package handler_models
+package user_models
 
-import "time"
+import (
+	"time"
+)
 
-// UserResponse - API model for responding with user data.
-type UserResponse struct {
+type UserModel struct {
 	ID        int       `json:"id"`
 	Username  string    `json:"username"`
 	FirstName string    `json:"first_name"`

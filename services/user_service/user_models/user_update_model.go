@@ -1,4 +1,4 @@
-package models
+package user_models
 
 type UserUpdateModel struct {
 	ID        int    `json:"id" validate:"required"`

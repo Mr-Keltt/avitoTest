@@ -1,4 +1,4 @@
-package service_models
+package organization_models
 
 // OrganizationCreateModel - model for creating a new organization.
 type OrganizationCreateModel struct {

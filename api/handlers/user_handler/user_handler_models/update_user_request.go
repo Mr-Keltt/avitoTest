@@ -1,4 +1,4 @@
-package handler_models
+package user_handler_models
 
 // UpdateUserRequest - API model for updating an existing user.
 type UpdateUserRequest struct {

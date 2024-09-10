@@ -75,7 +75,7 @@ func initializeServices(db *gorm.DB) (
 	orgRepo := organization_repository.NewOrganizationRepository(db)
 	userRepo := user_repository.NewUserRepository(db)
 
-	orgService := organization_service.NewOrganizationService(orgRepo)
+	orgService := organization_service.NewOrganizationService(orgRepo, userRepo)
 	userService := user_service.NewUserService(userRepo)
 
 	return orgService, userService

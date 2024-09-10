@@ -1,9 +1,9 @@
 package user_handler
 
 import (
-	"avitoTest/api/handlers/user_handler/handler_models"
+	"avitoTest/api/handlers/user_handler/user_handler_models"
 	"avitoTest/services/user_service"
-	"avitoTest/services/user_service/models"
+	"avitoTest/services/user_service/user_models"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -20,14 +20,14 @@ func NewUserHandler(service user_service.UserService) *UserHandler {
 }
 
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
-	var req handler_models.CreateUserRequest
+	var req user_handler_models.CreateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// Convert API model to service layer model
-	userCreateModel := models.UserCreateModel{
+	userCreateModel := user_models.UserCreateModel{
 		Username:  req.Username,
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
@@ -40,7 +40,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert service layer model to API response model
-	resp := handler_models.UserResponse{
+	resp := user_handler_models.UserResponse{
 		ID:        user.ID,
 		Username:  user.Username,
 		FirstName: user.FirstName,
@@ -62,9 +62,9 @@ func (h *UserHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert service layer models to API response models
-	var resp []handler_models.UserResponse
+	var resp []user_handler_models.UserResponse
 	for _, user := range users {
-		resp = append(resp, handler_models.UserResponse{
+		resp = append(resp, user_handler_models.UserResponse{
 			ID:        user.ID,
 			Username:  user.Username,
 			FirstName: user.FirstName,
@@ -94,7 +94,7 @@ func (h *UserHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert service layer model to API response model
-	resp := handler_models.UserResponse{
+	resp := user_handler_models.UserResponse{
 		ID:        user.ID,
 		Username:  user.Username,
 		FirstName: user.FirstName,
@@ -116,14 +116,14 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req handler_models.UpdateUserRequest
+	var req user_handler_models.UpdateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// Convert API model to service layer model
-	userUpdateModel := models.UserUpdateModel{
+	userUpdateModel := user_models.UserUpdateModel{
 		ID:        id,
 		Username:  req.Username,
 		FirstName: req.FirstName,
@@ -137,7 +137,7 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert service layer model to API response model
-	resp := handler_models.UserResponse{
+	resp := user_handler_models.UserResponse{
 		ID:        user.ID,
 		Username:  user.Username,
 		FirstName: user.FirstName,

@@ -7,16 +7,16 @@ import (
 
 	"avitoTest/data/entities"
 	"avitoTest/data/repositories/user_repository"
-	models "avitoTest/services/user_service/models"
+	user_models "avitoTest/services/user_service/user_models"
 
 	"github.com/go-playground/validator/v10"
 )
 
 type UserService interface {
-	CreateUser(ctx context.Context, user models.UserCreateModel) (*models.UserModel, error)
-	UpdateUser(ctx context.Context, user models.UserUpdateModel) (*models.UserModel, error)
-	GetUsers(ctx context.Context) ([]*models.UserModel, error)
-	GetUserByID(ctx context.Context, id int) (*models.UserModel, error)
+	CreateUser(ctx context.Context, user user_models.UserCreateModel) (*user_models.UserModel, error)
+	UpdateUser(ctx context.Context, user user_models.UserUpdateModel) (*user_models.UserModel, error)
+	GetUsers(ctx context.Context) ([]*user_models.UserModel, error)
+	GetUserByID(ctx context.Context, id int) (*user_models.UserModel, error)
 	DeleteUser(ctx context.Context, id int) error
 }
 
@@ -32,7 +32,7 @@ func NewUserService(repo user_repository.UserRepository) UserService {
 	}
 }
 
-func (s *userService) CreateUser(ctx context.Context, user models.UserCreateModel) (*models.UserModel, error) {
+func (s *userService) CreateUser(ctx context.Context, user user_models.UserCreateModel) (*user_models.UserModel, error) {
 	if err := s.validate.Struct(user); err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (s *userService) CreateUser(ctx context.Context, user models.UserCreateMode
 		return nil, err
 	}
 
-	return &models.UserModel{
+	return &user_models.UserModel{
 		ID:        entity.ID,
 		Username:  entity.Username,
 		FirstName: entity.FirstName,
@@ -59,7 +59,7 @@ func (s *userService) CreateUser(ctx context.Context, user models.UserCreateMode
 	}, nil
 }
 
-func (s *userService) UpdateUser(ctx context.Context, user models.UserUpdateModel) (*models.UserModel, error) {
+func (s *userService) UpdateUser(ctx context.Context, user user_models.UserUpdateModel) (*user_models.UserModel, error) {
 	if err := s.validate.Struct(user); err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func (s *userService) UpdateUser(ctx context.Context, user models.UserUpdateMode
 		return nil, err
 	}
 
-	return &models.UserModel{
+	return &user_models.UserModel{
 		ID:        entity.ID,
 		Username:  entity.Username,
 		FirstName: entity.FirstName,
@@ -88,15 +88,15 @@ func (s *userService) UpdateUser(ctx context.Context, user models.UserUpdateMode
 	}, nil
 }
 
-func (s *userService) GetUsers(ctx context.Context) ([]*models.UserModel, error) {
+func (s *userService) GetUsers(ctx context.Context) ([]*user_models.UserModel, error) {
 	entities, err := s.repo.GetAll(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	var users []*models.UserModel
+	var users []*user_models.UserModel
 	for _, entity := range entities {
-		userModel := &models.UserModel{
+		userModel := &user_models.UserModel{
 			ID:        entity.ID,
 			Username:  entity.Username,
 			FirstName: entity.FirstName,
@@ -110,7 +110,7 @@ func (s *userService) GetUsers(ctx context.Context) ([]*models.UserModel, error)
 	return users, nil
 }
 
-func (s *userService) GetUserByID(ctx context.Context, id int) (*models.UserModel, error) {
+func (s *userService) GetUserByID(ctx context.Context, id int) (*user_models.UserModel, error) {
 	entity, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, user_repository.ErrUserNotFound) {
@@ -119,7 +119,7 @@ func (s *userService) GetUserByID(ctx context.Context, id int) (*models.UserMode
 		return nil, err
 	}
 
-	return &models.UserModel{
+	return &user_models.UserModel{
 		ID:        entity.ID,
 		Username:  entity.Username,
 		FirstName: entity.FirstName,
