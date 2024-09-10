@@ -9,14 +9,15 @@ import (
 )
 
 // InitRoutes - initializes API routes
-func InitRoutes(router *mux.Router, orgService organization_service.OrganizationService) {
-	// Инициализация сервиса организации
+func InitRoutes(router *mux.Router,
+	orgService organization_service.OrganizationService) {
+	// Initializing an organization service
 	orgHandler := organization_handler.NewOrganizationHandler(orgService)
 
-	// Маршрут для проверки доступности сервера
+	// Route to check server availability
 	router.HandleFunc("/api/ping", ping_handler.PingHandler).Methods("GET")
 
-	// Маршруты для работы с организациями
+	// Routes for working with organizations
 	router.HandleFunc("/api/organizations/", orgHandler.CreateOrganization).Methods("POST")
 	router.HandleFunc("/api/organizations/", orgHandler.GetOrganizations).Methods("GET")
 	router.HandleFunc("/api/organizations/{id}", orgHandler.GetOrganizationByID).Methods("GET")
