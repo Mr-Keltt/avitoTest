@@ -6,7 +6,9 @@ import (
 	"avitoTest/api"
 	"avitoTest/data/context"
 	"avitoTest/data/repositories/organization_repository"
+	"avitoTest/data/repositories/user_repository"
 	"avitoTest/services/organization_service"
+	"avitoTest/services/user_service"
 	"avitoTest/shared"
 	"net/http"
 
@@ -20,8 +22,10 @@ func main() {
 	db := connectToDatabase(conf)
 	defer closeDatabaseConnection(db)
 
-	orgService := initializeServices(db)
-	router := setupRouter(orgService)
+	orgService, userService := initializeServices(db)
+	router := setupRouter(
+		orgService,
+		userService)
 
 	startServer(conf.ServerAddress, router)
 }
@@ -63,17 +67,27 @@ func closeDatabaseConnection(db *gorm.DB) {
 }
 
 // initializeServices initializes the necessary repositories and services.
-func initializeServices(db *gorm.DB) organization_service.OrganizationService {
+func initializeServices(db *gorm.DB) (
+	organization_service.OrganizationService,
+	user_service.UserService) {
 	shared.Logger.Info("Initializing repositories and services")
+
 	orgRepo := organization_repository.NewOrganizationRepository(db)
-	return organization_service.NewOrganizationService(orgRepo)
+	userRepo := user_repository.NewUserRepository(db)
+
+	orgService := organization_service.NewOrganizationService(orgRepo)
+	userService := user_service.NewUserService(userRepo)
+
+	return orgService, userService
 }
 
 // setupRouter sets up the HTTP router with the necessary routes.
-func setupRouter(orgService organization_service.OrganizationService) *mux.Router {
+func setupRouter(
+	orgService organization_service.OrganizationService,
+	userService user_service.UserService) *mux.Router {
 	shared.Logger.Info("Initializing routes")
 	router := mux.NewRouter()
-	api.InitRoutes(router, orgService)
+	api.InitRoutes(router, orgService, userService)
 	return router
 }
 
