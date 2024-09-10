@@ -64,6 +64,14 @@ func (m *MockOrganizationService) GetResponsibles(ctx context.Context, orgID int
 	return args.Get(0).([]*user_models.UserModel), args.Error(1)
 }
 
+func (m *MockOrganizationService) GetResponsibleByID(ctx context.Context, orgID int, userID int) (*user_models.UserModel, error) {
+	args := m.Called(ctx, orgID, userID)
+	if user, ok := args.Get(0).(*user_models.UserModel); ok {
+		return user, args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
 func TestCreateOrganization(t *testing.T) {
 	service := new(MockOrganizationService)
 	handler := organization_handler.NewOrganizationHandler(service)
@@ -284,5 +292,50 @@ func TestGetResponsibles(t *testing.T) {
 	assert.Equal(t, expectedUsers[0].ID, response[0].ID)
 	assert.Equal(t, expectedUsers[0].Username, response[0].Username)
 
+	service.AssertExpectations(t)
+}
+
+func TestGetResponsibleByID(t *testing.T) {
+	service := new(MockOrganizationService)
+	handler := organization_handler.NewOrganizationHandler(service)
+
+	// Set up mock response
+	expectedUser := &user_models.UserModel{
+		ID:        1,
+		Username:  "jdoe",
+		FirstName: "John",
+		LastName:  "Doe",
+	}
+
+	// Set up the request and response
+	req := httptest.NewRequest("GET", "/api/organizations/1/responsibles/1", nil)
+	rr := httptest.NewRecorder()
+
+	// Mock the service call
+	service.On("GetResponsibleByID", mock.Anything, 1, 1).Return(expectedUser, nil)
+
+	// Set URL variables
+	vars := map[string]string{
+		"org_id":  "1",
+		"user_id": "1",
+	}
+	req = mux.SetURLVars(req, vars)
+
+	// Call the handler
+	handler.GetResponsibleByID(rr, req)
+
+	// Assert that the status code is 200 OK
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	// Assert the response body
+	var response user_models.UserModel
+	json.Unmarshal(rr.Body.Bytes(), &response)
+
+	assert.Equal(t, expectedUser.ID, response.ID)
+	assert.Equal(t, expectedUser.Username, response.Username)
+	assert.Equal(t, expectedUser.FirstName, response.FirstName)
+	assert.Equal(t, expectedUser.LastName, response.LastName)
+
+	// Assert that the expectations were met
 	service.AssertExpectations(t)
 }

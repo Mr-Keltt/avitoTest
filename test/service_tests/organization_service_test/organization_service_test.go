@@ -2,6 +2,7 @@ package organization_service_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -65,6 +66,15 @@ func (m *MockOrganizationRepository) GetResponsibles(ctx context.Context, orgID 
 	args := m.Called(ctx, orgID)
 	if responsibles, ok := args.Get(0).([]entities.User); ok {
 		return responsibles, args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
+// Add a new method to MockOrganizationRepository for GetResponsibleByID
+func (m *MockOrganizationRepository) GetResponsibleByID(ctx context.Context, orgID int, userID int) (*entities.User, error) {
+	args := m.Called(ctx, orgID, userID)
+	if user, ok := args.Get(0).(*entities.User); ok {
+		return user, args.Error(1)
 	}
 	return nil, args.Error(1)
 }
@@ -263,5 +273,58 @@ func TestGetResponsibles_Success(t *testing.T) {
 	assert.Len(t, result, 2)
 	assert.Equal(t, expectedUsers[0].ID, result[0].ID)
 	assert.Equal(t, expectedUsers[1].ID, result[1].ID)
+	mockOrgRepo.AssertExpectations(t)
+}
+
+// Test case for GetResponsibleByID
+func TestGetResponsibleByID_Success(t *testing.T) {
+	mockOrgRepo, _, service := setupMocks()
+
+	expectedUser := &entities.User{
+		ID:        1,
+		Username:  "user1",
+		FirstName: "John",
+		LastName:  "Doe",
+	}
+
+	// Mock the organization and user existence
+	mockOrgRepo.On("FindByID", mock.Anything, 1).Return(&entities.Organization{ID: 1}, nil)
+	mockOrgRepo.On("GetResponsibleByID", mock.Anything, 1, 1).Return(expectedUser, nil)
+
+	result, err := service.GetResponsibleByID(context.Background(), 1, 1)
+
+	assert.NoError(t, err)
+	assert.Equal(t, expectedUser.ID, result.ID)
+	assert.Equal(t, expectedUser.Username, result.Username)
+	assert.Equal(t, expectedUser.FirstName, result.FirstName)
+	assert.Equal(t, expectedUser.LastName, result.LastName)
+	mockOrgRepo.AssertExpectations(t)
+}
+
+func TestGetResponsibleByID_OrganizationNotFound(t *testing.T) {
+	mockOrgRepo, _, service := setupMocks()
+
+	// Mock organization not found
+	mockOrgRepo.On("FindByID", mock.Anything, 1).Return(nil, organization_repository.ErrOrganizationNotFound)
+
+	_, err := service.GetResponsibleByID(context.Background(), 1, 1)
+
+	assert.Error(t, err)
+	assert.Equal(t, "organization not found", err.Error())
+	mockOrgRepo.AssertExpectations(t)
+}
+
+func TestGetResponsibleByID_ResponsibleNotFound(t *testing.T) {
+	mockOrgRepo, _, service := setupMocks()
+
+	// Mock organization existence
+	mockOrgRepo.On("FindByID", mock.Anything, 1).Return(&entities.Organization{ID: 1}, nil)
+	// Mock responsible user not found
+	mockOrgRepo.On("GetResponsibleByID", mock.Anything, 1, 1).Return(nil, errors.New("responsible user not found"))
+
+	_, err := service.GetResponsibleByID(context.Background(), 1, 1)
+
+	assert.Error(t, err)
+	assert.Equal(t, "responsible user not found", err.Error())
 	mockOrgRepo.AssertExpectations(t)
 }

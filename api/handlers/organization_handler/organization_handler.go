@@ -300,3 +300,38 @@ func (h *OrganizationHandler) GetResponsibles(w http.ResponseWriter, r *http.Req
 	shared.Logger.Infof("GetResponsibles: Successfully retrieved %d responsible users for organization ID=%d", len(response), orgID)
 	render.JSON(w, r, response)
 }
+
+// GetResponsibleByID - Retrieves a specific responsible user by organization ID and user ID.
+func (h *OrganizationHandler) GetResponsibleByID(w http.ResponseWriter, r *http.Request) {
+	orgIDParam := mux.Vars(r)["org_id"]
+	userIDParam := mux.Vars(r)["user_id"]
+
+	orgID, err := strconv.Atoi(orgIDParam)
+	if err != nil {
+		shared.Logger.Errorf("GetResponsibleByID: Invalid organization ID: %v", err)
+		render.Render(w, r, shared.ErrInvalidRequest(err))
+		return
+	}
+
+	userID, err := strconv.Atoi(userIDParam)
+	if err != nil {
+		shared.Logger.Errorf("GetResponsibleByID: Invalid user ID: %v", err)
+		render.Render(w, r, shared.ErrInvalidRequest(err))
+		return
+	}
+
+	user, err := h.service.GetResponsibleByID(r.Context(), orgID, userID)
+	if err != nil {
+		shared.Logger.Errorf("GetResponsibleByID: Failed to get responsible user: %v", err)
+		render.Render(w, r, shared.ErrInternal(err))
+		return
+	}
+
+	shared.Logger.Infof("GetResponsibleByID: Successfully retrieved user ID=%d as responsible for organization ID=%d", userID, orgID)
+	render.JSON(w, r, user_handler_models.UserResponse{
+		ID:        user.ID,
+		Username:  user.Username,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+	})
+}

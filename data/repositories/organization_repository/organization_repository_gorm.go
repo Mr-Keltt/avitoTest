@@ -9,6 +9,7 @@ import (
 )
 
 var ErrOrganizationNotFound = errors.New("organization not found")
+var ErrResponsibleNotFound = errors.New("responsible not found")
 
 type OrganizationRepositoryGorm struct {
 	db *gorm.DB
@@ -73,4 +74,24 @@ func (r *OrganizationRepositoryGorm) GetResponsibles(ctx context.Context, orgID 
 	}
 
 	return responsibles, nil
+}
+
+// GetResponsibleByID retrieves a responsible user by organization ID and user ID.
+func (r *OrganizationRepositoryGorm) GetResponsibleByID(ctx context.Context, orgID int, userID int) (*entities.User, error) {
+	var responsible entities.User
+	err := r.db.WithContext(ctx).
+		Model(&entities.OrganizationResponsible{}).
+		Where("organization_id = ? AND user_id = ?", orgID, userID).
+		Joins("JOIN users ON users.id = organization_responsibles.user_id").
+		Select("users.*").
+		First(&responsible).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("responsible user not found")
+		}
+		return nil, err
+	}
+
+	return &responsible, nil
 }

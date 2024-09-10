@@ -24,6 +24,7 @@ type OrganizationService interface {
 	AddResponsible(ctx context.Context, orgID int, userID int) error
 	DeleteResponsible(ctx context.Context, orgID int, userID int) error
 	GetResponsibles(ctx context.Context, orgID int) ([]*user_models.UserModel, error)
+	GetResponsibleByID(ctx context.Context, orgID int, userID int) (*user_models.UserModel, error)
 }
 
 type organizationService struct {
@@ -221,4 +222,30 @@ func (s *organizationService) GetResponsibles(ctx context.Context, orgID int) ([
 	}
 
 	return userModels, nil
+}
+
+// GetResponsibleByID retrieves a specific responsible user by organization ID and user ID.
+func (s *organizationService) GetResponsibleByID(ctx context.Context, orgID int, userID int) (*user_models.UserModel, error) {
+	// Validate that the organization exists
+	_, err := s.orgRepo.FindByID(ctx, orgID)
+	if err != nil {
+		return nil, errors.New("organization not found")
+	}
+
+	// Fetch the responsible user for the organization by user ID
+	responsible, err := s.orgRepo.GetResponsibleByID(ctx, orgID, userID)
+	if err != nil {
+		if errors.Is(err, organization_repository.ErrResponsibleNotFound) {
+			return nil, errors.New("responsible user not found for the organization")
+		}
+		return nil, err
+	}
+
+	// Return the responsible user information
+	return &user_models.UserModel{
+		ID:        responsible.ID,
+		Username:  responsible.Username,
+		FirstName: responsible.FirstName,
+		LastName:  responsible.LastName,
+	}, nil
 }

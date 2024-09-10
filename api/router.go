@@ -35,6 +35,7 @@ func initOrganizationRoutes(router *mux.Router, orgService organization_service.
 
 	// Routes for managing responsibilities
 	router.HandleFunc("/api/organizations/{org_id}/responsibles", orgHandler.GetResponsibles).Methods("GET")
+	router.HandleFunc("/api/organizations/{org_id}/responsibles/{user_id}", orgHandler.GetResponsibleByID).Methods("GET")
 	router.HandleFunc("/api/organizations/{org_id}/responsibles/{user_id}", orgHandler.AddResponsible).Methods("POST")
 	router.HandleFunc("/api/organizations/{org_id}/responsibles/{user_id}", orgHandler.DeleteResponsible).Methods("DELETE")
 }

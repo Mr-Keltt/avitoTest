@@ -14,4 +14,5 @@ type OrganizationRepository interface {
 	AddResponsible(ctx context.Context, orgResponsible *entities.OrganizationResponsible) error
 	DeleteResponsible(ctx context.Context, orgID int, userID int) error
 	GetResponsibles(ctx context.Context, orgID int) ([]entities.User, error)
+	GetResponsibleByID(ctx context.Context, orgID int, userID int) (*entities.User, error)
 }
