@@ -70,7 +70,6 @@ func (m *MockOrganizationRepository) GetResponsibles(ctx context.Context, orgID 
 	return nil, args.Error(1)
 }
 
-// Add a new method to MockOrganizationRepository for GetResponsibleByID
 func (m *MockOrganizationRepository) GetResponsibleByID(ctx context.Context, orgID int, userID int) (*entities.User, error) {
 	args := m.Called(ctx, orgID, userID)
 	if user, ok := args.Get(0).(*entities.User); ok {
