@@ -14,6 +14,7 @@ type Organization struct {
 	UpdatedAt    time.Time        `gorm:"autoUpdateTime"`
 	Responsibles []User           `gorm:"many2many:organization_responsibles;"`
 	Tenders      []Tender         `gorm:"foreignKey:OrganizationID;constraint:OnDelete:CASCADE;"`
+	Comments     []Comment        `gorm:"foreignKey:OrganizationID;constraint:OnDelete:CASCADE;"`
 }
 
 // OrganizationResponsible represents a link between an Organization and a User.
