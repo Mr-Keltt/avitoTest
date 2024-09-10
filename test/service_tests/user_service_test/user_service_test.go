@@ -1,4 +1,4 @@
-package service_test
+package user_service_test
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"avitoTest/data/entities"
 	"avitoTest/data/repositories/user_repository"
 	"avitoTest/services/user_service"
-	"avitoTest/services/user_service/models"
+	models "avitoTest/services/user_service/user_models"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

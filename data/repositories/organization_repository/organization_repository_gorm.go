@@ -48,3 +48,29 @@ func (r *OrganizationRepositoryGorm) Update(ctx context.Context, org *entities.O
 func (r *OrganizationRepositoryGorm) Delete(ctx context.Context, id int) error {
 	return r.db.WithContext(ctx).Delete(&entities.Organization{}, id).Error
 }
+
+func (r *OrganizationRepositoryGorm) AddResponsible(ctx context.Context, orgResponsible *entities.OrganizationResponsible) error {
+	return r.db.WithContext(ctx).Create(orgResponsible).Error
+}
+
+func (r *OrganizationRepositoryGorm) DeleteResponsible(ctx context.Context, orgID int, userID int) error {
+	return r.db.WithContext(ctx).
+		Where("organization_id = ? AND user_id = ?", orgID, userID).
+		Delete(&entities.OrganizationResponsible{}).Error
+}
+
+func (r *OrganizationRepositoryGorm) GetResponsibles(ctx context.Context, orgID int) ([]entities.User, error) {
+	var responsibles []entities.User
+	err := r.db.WithContext(ctx).
+		Model(&entities.OrganizationResponsible{}).
+		Where("organization_id = ?", orgID).
+		Joins("JOIN users ON users.id = organization_responsibles.user_id").
+		Select("users.*").
+		Find(&responsibles).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return responsibles, nil
+}

@@ -1,4 +1,4 @@
-package service_models
+package organization_models
 
 // OrganizationUpdateModel - model for updating an existing organization.
 type OrganizationUpdateModel struct {

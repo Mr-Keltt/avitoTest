@@ -3,7 +3,7 @@ package user_handler
 import (
 	"avitoTest/api/handlers/user_handler/handler_models"
 	"avitoTest/services/user_service"
-	"avitoTest/services/user_service/models"
+	"avitoTest/services/user_service/user_models"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -27,7 +27,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert API model to service layer model
-	userCreateModel := models.UserCreateModel{
+	userCreateModel := user_models.UserCreateModel{
 		Username:  req.Username,
 		FirstName: req.FirstName,
 		LastName:  req.LastName,
@@ -123,7 +123,7 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert API model to service layer model
-	userUpdateModel := models.UserUpdateModel{
+	userUpdateModel := user_models.UserUpdateModel{
 		ID:        id,
 		Username:  req.Username,
 		FirstName: req.FirstName,

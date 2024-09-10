@@ -11,7 +11,7 @@ import (
 
 	"avitoTest/api/handlers/organization_handler"
 	"avitoTest/api/handlers/organization_handler/handler_models"
-	"avitoTest/services/organization_service/service_models"
+	"avitoTest/services/organization_service/organization_models"
 
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -23,24 +23,24 @@ type MockOrganizationService struct {
 	mock.Mock
 }
 
-func (m *MockOrganizationService) CreateOrganization(ctx context.Context, org service_models.OrganizationCreateModel) (*service_models.OrganizationModel, error) {
+func (m *MockOrganizationService) CreateOrganization(ctx context.Context, org organization_models.OrganizationCreateModel) (*organization_models.OrganizationModel, error) {
 	args := m.Called(ctx, org)
-	return args.Get(0).(*service_models.OrganizationModel), args.Error(1)
+	return args.Get(0).(*organization_models.OrganizationModel), args.Error(1)
 }
 
-func (m *MockOrganizationService) UpdateOrganization(ctx context.Context, org service_models.OrganizationUpdateModel) (*service_models.OrganizationModel, error) {
+func (m *MockOrganizationService) UpdateOrganization(ctx context.Context, org organization_models.OrganizationUpdateModel) (*organization_models.OrganizationModel, error) {
 	args := m.Called(ctx, org)
-	return args.Get(0).(*service_models.OrganizationModel), args.Error(1)
+	return args.Get(0).(*organization_models.OrganizationModel), args.Error(1)
 }
 
-func (m *MockOrganizationService) GetOrganizations(ctx context.Context) ([]*service_models.OrganizationModel, error) {
+func (m *MockOrganizationService) GetOrganizations(ctx context.Context) ([]*organization_models.OrganizationModel, error) {
 	args := m.Called(ctx)
-	return args.Get(0).([]*service_models.OrganizationModel), args.Error(1)
+	return args.Get(0).([]*organization_models.OrganizationModel), args.Error(1)
 }
 
-func (m *MockOrganizationService) GetOrganizationByID(ctx context.Context, id int) (*service_models.OrganizationModel, error) {
+func (m *MockOrganizationService) GetOrganizationByID(ctx context.Context, id int) (*organization_models.OrganizationModel, error) {
 	args := m.Called(ctx, id)
-	return args.Get(0).(*service_models.OrganizationModel), args.Error(1)
+	return args.Get(0).(*organization_models.OrganizationModel), args.Error(1)
 }
 
 func (m *MockOrganizationService) DeleteOrganization(ctx context.Context, id int) error {
@@ -62,7 +62,7 @@ func TestCreateOrganization(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
 
-	expectedResponse := &service_models.OrganizationModel{
+	expectedResponse := &organization_models.OrganizationModel{
 		ID:          1,
 		Name:        "Test Organization",
 		Description: "A test organization",
@@ -102,7 +102,7 @@ func TestUpdateOrganization(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
 
-	expectedResponse := &service_models.OrganizationModel{
+	expectedResponse := &organization_models.OrganizationModel{
 		ID:          1,
 		Name:        "Updated Organization",
 		Description: "An updated organization",
@@ -140,7 +140,7 @@ func TestGetOrganizationByID(t *testing.T) {
 	req := httptest.NewRequest("GET", "/api/organizations/1", nil)
 	rr := httptest.NewRecorder()
 
-	expectedResponse := &service_models.OrganizationModel{
+	expectedResponse := &organization_models.OrganizationModel{
 		ID:          1,
 		Name:        "Test Organization",
 		Description: "A test organization",

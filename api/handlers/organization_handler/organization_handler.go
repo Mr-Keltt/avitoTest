@@ -3,7 +3,7 @@ package organization_handler
 import (
 	"avitoTest/api/handlers/organization_handler/handler_models"
 	"avitoTest/services/organization_service"
-	"avitoTest/services/organization_service/service_models"
+	"avitoTest/services/organization_service/organization_models"
 	"avitoTest/shared"
 	"net/http"
 	"strconv"
@@ -42,7 +42,7 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 
 	shared.Logger.Infof("CreateOrganization: Request - Name: %s, Description: %s, Type: %s", req.Name, req.Description, req.Type)
 
-	org, err := h.service.CreateOrganization(r.Context(), service_models.OrganizationCreateModel{
+	org, err := h.service.CreateOrganization(r.Context(), organization_models.OrganizationCreateModel{
 		Name:        req.Name,
 		Description: req.Description,
 		Type:        req.Type,
@@ -91,7 +91,7 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 		return
 	}
 
-	org, err := h.service.UpdateOrganization(r.Context(), service_models.OrganizationUpdateModel{
+	org, err := h.service.UpdateOrganization(r.Context(), organization_models.OrganizationUpdateModel{
 		ID:          id,
 		Name:        req.Name,
 		Description: req.Description,
