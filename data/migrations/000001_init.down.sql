@@ -1,4 +1,3 @@
--- Dropping tables in reverse order of creation
 DROP TABLE IF EXISTS comments;
 DROP TABLE IF EXISTS bid_versions;
 DROP TABLE IF EXISTS bids;
