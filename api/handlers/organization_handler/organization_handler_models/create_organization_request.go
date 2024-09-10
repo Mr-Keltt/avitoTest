@@ -1,4 +1,4 @@
-package handler_models
+package organization_handler_models
 
 // CreateOrganizationRequest - API модель для создания новой организации.
 type CreateOrganizationRequest struct {

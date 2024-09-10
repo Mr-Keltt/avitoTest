@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"avitoTest/api/handlers/user_handler"
-	"avitoTest/api/handlers/user_handler/handler_models"
+	"avitoTest/api/handlers/user_handler/user_handler_models"
 	"avitoTest/services/user_service/user_models"
 
 	"github.com/gorilla/mux"
@@ -52,7 +52,7 @@ func TestCreateUser(t *testing.T) {
 	service := new(MockUserService)
 	handler := user_handler.NewUserHandler(service)
 
-	reqBody := &handler_models.CreateUserRequest{
+	reqBody := &user_handler_models.CreateUserRequest{
 		Username:  "jdoe",
 		FirstName: "John",
 		LastName:  "Doe",
@@ -77,7 +77,7 @@ func TestCreateUser(t *testing.T) {
 
 	assert.Equal(t, http.StatusCreated, rr.Code)
 
-	var response handler_models.UserResponse
+	var response user_handler_models.UserResponse
 	json.Unmarshal(rr.Body.Bytes(), &response)
 
 	assert.Equal(t, expectedResponse.ID, response.ID)
@@ -92,7 +92,7 @@ func TestUpdateUser(t *testing.T) {
 	service := new(MockUserService)
 	handler := user_handler.NewUserHandler(service)
 
-	reqBody := &handler_models.UpdateUserRequest{
+	reqBody := &user_handler_models.UpdateUserRequest{
 		Username:  "jdoe_updated",
 		FirstName: "Johnathan",
 		LastName:  "Doe",
@@ -122,7 +122,7 @@ func TestUpdateUser(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
-	var response handler_models.UserResponse
+	var response user_handler_models.UserResponse
 	json.Unmarshal(rr.Body.Bytes(), &response)
 
 	assert.Equal(t, expectedResponse.ID, response.ID)
@@ -160,7 +160,7 @@ func TestGetUserByID(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
-	var response handler_models.UserResponse
+	var response user_handler_models.UserResponse
 	json.Unmarshal(rr.Body.Bytes(), &response)
 
 	assert.Equal(t, expectedResponse.ID, response.ID)

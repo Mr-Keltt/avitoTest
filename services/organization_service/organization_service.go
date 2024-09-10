@@ -9,6 +9,7 @@ import (
 	"avitoTest/data/repositories/organization_repository"
 	"avitoTest/data/repositories/user_repository"
 	"avitoTest/services/organization_service/organization_models"
+	"avitoTest/services/user_service/user_models"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -22,7 +23,7 @@ type OrganizationService interface {
 	DeleteOrganization(ctx context.Context, id int) error
 	AddResponsible(ctx context.Context, orgID int, userID int) error
 	DeleteResponsible(ctx context.Context, orgID int, userID int) error
-	GetResponsibles(ctx context.Context, orgID int) ([]*organization_models.UserModel, error)
+	GetResponsibles(ctx context.Context, orgID int) ([]*user_models.UserModel, error)
 }
 
 type organizationService struct {
@@ -201,16 +202,16 @@ func (s *organizationService) DeleteResponsible(ctx context.Context, orgID int, 
 }
 
 // GetResponsibles retrieves all users responsible for a given organization.
-func (s *organizationService) GetResponsibles(ctx context.Context, orgID int) ([]*organization_models.UserModel, error) {
+func (s *organizationService) GetResponsibles(ctx context.Context, orgID int) ([]*user_models.UserModel, error) {
 	// Fetch responsibles for the given organization
 	responsibles, err := s.orgRepo.GetResponsibles(ctx, orgID)
 	if err != nil {
 		return nil, err
 	}
 
-	var userModels []*organization_models.UserModel
+	var userModels []*user_models.UserModel
 	for _, user := range responsibles {
-		userModel := &organization_models.UserModel{
+		userModel := &user_models.UserModel{
 			ID:        user.ID,
 			Username:  user.Username,
 			FirstName: user.FirstName,

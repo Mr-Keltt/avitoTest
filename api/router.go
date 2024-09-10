@@ -10,25 +10,39 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// InitRoutes - initializes API routes
-func InitRoutes(router *mux.Router,
-	orgService organization_service.OrganizationService,
-	userService user_service.UserService) {
-	// Initializing an organization service
-	orgHandler := organization_handler.NewOrganizationHandler(orgService)
-	userHandler := user_handler.NewUserHandler(userService)
+// InitRoutes initializes all API routes.
+func InitRoutes(router *mux.Router, orgService organization_service.OrganizationService, userService user_service.UserService) {
+	// Initialize individual route groups
+	initPingRoutes(router)
+	initOrganizationRoutes(router, orgService)
+	initUserRoutes(router, userService)
+}
 
-	// Route to check server availability
+// initPingRoutes sets up routes for server availability checks.
+func initPingRoutes(router *mux.Router) {
 	router.HandleFunc("/api/ping", ping_handler.PingHandler).Methods("GET")
+}
 
-	// Routes for working with organizations
+// initOrganizationRoutes sets up routes for organization-related operations.
+func initOrganizationRoutes(router *mux.Router, orgService organization_service.OrganizationService) {
+	orgHandler := organization_handler.NewOrganizationHandler(orgService)
+
 	router.HandleFunc("/api/organizations/", orgHandler.CreateOrganization).Methods("POST")
 	router.HandleFunc("/api/organizations/", orgHandler.GetOrganizations).Methods("GET")
 	router.HandleFunc("/api/organizations/{id}", orgHandler.GetOrganizationByID).Methods("GET")
 	router.HandleFunc("/api/organizations/{id}", orgHandler.UpdateOrganization).Methods("PATCH")
 	router.HandleFunc("/api/organizations/{id}", orgHandler.DeleteOrganization).Methods("DELETE")
 
-	// Routes for working with users
+	// Routes for managing responsibilities
+	router.HandleFunc("/api/organizations/{org_id}/responsibles", orgHandler.GetResponsibles).Methods("GET")
+	router.HandleFunc("/api/organizations/{org_id}/responsibles/{user_id}", orgHandler.AddResponsible).Methods("POST")
+	router.HandleFunc("/api/organizations/{org_id}/responsibles/{user_id}", orgHandler.DeleteResponsible).Methods("DELETE")
+}
+
+// initUserRoutes sets up routes for user-related operations.
+func initUserRoutes(router *mux.Router, userService user_service.UserService) {
+	userHandler := user_handler.NewUserHandler(userService)
+
 	router.HandleFunc("/api/users/", userHandler.CreateUser).Methods("POST")
 	router.HandleFunc("/api/users/", userHandler.GetUsers).Methods("GET")
 	router.HandleFunc("/api/users/{id}", userHandler.GetUserByID).Methods("GET")

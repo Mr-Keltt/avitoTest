@@ -1,4 +1,4 @@
-package models
+package user_models
 
 type UserCreateModel struct {
 	Username  string `json:"username" validate:"required,min=3,max=50"`

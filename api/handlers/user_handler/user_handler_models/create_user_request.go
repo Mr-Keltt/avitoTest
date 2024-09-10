@@ -1,4 +1,4 @@
-package handler_models
+package user_handler_models
 
 // CreateUserRequest - API model for creating a new user.
 type CreateUserRequest struct {

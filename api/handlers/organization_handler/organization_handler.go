@@ -1,7 +1,8 @@
 package organization_handler
 
 import (
-	"avitoTest/api/handlers/organization_handler/handler_models"
+	"avitoTest/api/handlers/organization_handler/organization_handler_models"
+	"avitoTest/api/handlers/user_handler/user_handler_models"
 	"avitoTest/services/organization_service"
 	"avitoTest/services/organization_service/organization_models"
 	"avitoTest/shared"
@@ -27,7 +28,7 @@ func NewOrganizationHandler(service organization_service.OrganizationService) *O
 
 func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.Request) {
 	shared.Logger.Infof("CreateOrganization: Handling request from %s", r.RemoteAddr)
-	var req handler_models.CreateOrganizationRequest
+	var req organization_handler_models.CreateOrganizationRequest
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
 		shared.Logger.Errorf("CreateOrganization: Failed to decode request: %v", err)
 		render.Render(w, r, shared.ErrInvalidRequest(err))
@@ -54,7 +55,7 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 	}
 
 	shared.Logger.Infof("CreateOrganization: Organization created successfully: ID=%d", org.ID)
-	render.JSON(w, r, handler_models.OrganizationResponse{
+	render.JSON(w, r, organization_handler_models.OrganizationResponse{
 		ID:          org.ID,
 		Name:        org.Name,
 		Description: org.Description,
@@ -76,7 +77,7 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 		return
 	}
 
-	var req handler_models.UpdateOrganizationRequest
+	var req organization_handler_models.UpdateOrganizationRequest
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
 		shared.Logger.Errorf("UpdateOrganization: Failed to decode request body: %v", err)
 		render.Render(w, r, shared.ErrInvalidRequest(err))
@@ -104,7 +105,7 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 	}
 
 	shared.Logger.Infof("UpdateOrganization: Organization updated successfully: ID=%d", org.ID)
-	render.JSON(w, r, handler_models.OrganizationResponse{
+	render.JSON(w, r, organization_handler_models.OrganizationResponse{
 		ID:          org.ID,
 		Name:        org.Name,
 		Description: org.Description,
@@ -124,10 +125,10 @@ func (h *OrganizationHandler) GetOrganizations(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	var response []handler_models.OrganizationResponse
+	var response []organization_handler_models.OrganizationResponse
 	for _, org := range organizations {
 		shared.Logger.Infof("GetOrganizations: Found organization - ID=%d, Name=%s", org.ID, org.Name)
-		response = append(response, handler_models.OrganizationResponse{
+		response = append(response, organization_handler_models.OrganizationResponse{
 			ID:          org.ID,
 			Name:        org.Name,
 			Description: org.Description,
@@ -169,7 +170,7 @@ func (h *OrganizationHandler) GetOrganizationByID(w http.ResponseWriter, r *http
 	shared.Logger.Infof("GetOrganizationByID: Successfully retrieved organization with ID: %d", org.ID)
 
 	// Respond with the organization details
-	render.JSON(w, r, handler_models.OrganizationResponse{
+	render.JSON(w, r, organization_handler_models.OrganizationResponse{
 		ID:          org.ID,
 		Name:        org.Name,
 		Description: org.Description,
@@ -208,4 +209,94 @@ func (h *OrganizationHandler) DeleteOrganization(w http.ResponseWriter, r *http.
 
 	// Return no content response
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// AddResponsible - Adds a user as a responsible person for an organization.
+func (h *OrganizationHandler) AddResponsible(w http.ResponseWriter, r *http.Request) {
+	orgIDParam := mux.Vars(r)["org_id"]
+	userIDParam := mux.Vars(r)["user_id"]
+
+	orgID, err := strconv.Atoi(orgIDParam)
+	if err != nil {
+		shared.Logger.Errorf("AddResponsible: Invalid organization ID: %v", err)
+		render.Render(w, r, shared.ErrInvalidRequest(err))
+		return
+	}
+
+	userID, err := strconv.Atoi(userIDParam)
+	if err != nil {
+		shared.Logger.Errorf("AddResponsible: Invalid user ID: %v", err)
+		render.Render(w, r, shared.ErrInvalidRequest(err))
+		return
+	}
+
+	if err := h.service.AddResponsible(r.Context(), orgID, userID); err != nil {
+		shared.Logger.Errorf("AddResponsible: Failed to add responsible user: %v", err)
+		render.Render(w, r, shared.ErrInternal(err))
+		return
+	}
+
+	shared.Logger.Infof("AddResponsible: Successfully added user ID=%d as responsible for organization ID=%d", userID, orgID)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// DeleteResponsible - Removes a user as a responsible person for an organization.
+func (h *OrganizationHandler) DeleteResponsible(w http.ResponseWriter, r *http.Request) {
+	orgIDParam := mux.Vars(r)["org_id"]
+	userIDParam := mux.Vars(r)["user_id"]
+
+	orgID, err := strconv.Atoi(orgIDParam)
+	if err != nil {
+		shared.Logger.Errorf("DeleteResponsible: Invalid organization ID: %v", err)
+		render.Render(w, r, shared.ErrInvalidRequest(err))
+		return
+	}
+
+	userID, err := strconv.Atoi(userIDParam)
+	if err != nil {
+		shared.Logger.Errorf("DeleteResponsible: Invalid user ID: %v", err)
+		render.Render(w, r, shared.ErrInvalidRequest(err))
+		return
+	}
+
+	if err := h.service.DeleteResponsible(r.Context(), orgID, userID); err != nil {
+		shared.Logger.Errorf("DeleteResponsible: Failed to delete responsible user: %v", err)
+		render.Render(w, r, shared.ErrInternal(err))
+		return
+	}
+
+	shared.Logger.Infof("DeleteResponsible: Successfully removed user ID=%d from being responsible for organization ID=%d", userID, orgID)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// GetResponsibles - Retrieves all users responsible for a specific organization.
+func (h *OrganizationHandler) GetResponsibles(w http.ResponseWriter, r *http.Request) {
+	orgIDParam := mux.Vars(r)["org_id"]
+
+	orgID, err := strconv.Atoi(orgIDParam)
+	if err != nil {
+		shared.Logger.Errorf("GetResponsibles: Invalid organization ID: %v", err)
+		render.Render(w, r, shared.ErrInvalidRequest(err))
+		return
+	}
+
+	users, err := h.service.GetResponsibles(r.Context(), orgID)
+	if err != nil {
+		shared.Logger.Errorf("GetResponsibles: Failed to get responsible users: %v", err)
+		render.Render(w, r, shared.ErrInternal(err))
+		return
+	}
+
+	var response []user_handler_models.UserResponse
+	for _, user := range users {
+		response = append(response, user_handler_models.UserResponse{
+			ID:        user.ID,
+			Username:  user.Username,
+			FirstName: user.FirstName,
+			LastName:  user.LastName,
+		})
+	}
+
+	shared.Logger.Infof("GetResponsibles: Successfully retrieved %d responsible users for organization ID=%d", len(response), orgID)
+	render.JSON(w, r, response)
 }

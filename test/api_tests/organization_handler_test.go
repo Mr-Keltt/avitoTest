@@ -10,8 +10,9 @@ import (
 	"time"
 
 	"avitoTest/api/handlers/organization_handler"
-	"avitoTest/api/handlers/organization_handler/handler_models"
+	"avitoTest/api/handlers/organization_handler/organization_handler_models"
 	"avitoTest/services/organization_service/organization_models"
+	"avitoTest/services/user_service/user_models"
 
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -48,11 +49,26 @@ func (m *MockOrganizationService) DeleteOrganization(ctx context.Context, id int
 	return args.Error(0)
 }
 
+func (m *MockOrganizationService) AddResponsible(ctx context.Context, orgID int, userID int) error {
+	args := m.Called(ctx, orgID, userID)
+	return args.Error(0)
+}
+
+func (m *MockOrganizationService) DeleteResponsible(ctx context.Context, orgID int, userID int) error {
+	args := m.Called(ctx, orgID, userID)
+	return args.Error(0)
+}
+
+func (m *MockOrganizationService) GetResponsibles(ctx context.Context, orgID int) ([]*user_models.UserModel, error) {
+	args := m.Called(ctx, orgID)
+	return args.Get(0).([]*user_models.UserModel), args.Error(1)
+}
+
 func TestCreateOrganization(t *testing.T) {
 	service := new(MockOrganizationService)
 	handler := organization_handler.NewOrganizationHandler(service)
 
-	reqBody := &handler_models.CreateOrganizationRequest{
+	reqBody := &organization_handler_models.CreateOrganizationRequest{
 		Name:        "Test Organization",
 		Description: "A test organization",
 		Type:        "LLC",
@@ -77,7 +93,7 @@ func TestCreateOrganization(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
-	var response handler_models.OrganizationResponse
+	var response organization_handler_models.OrganizationResponse
 	json.Unmarshal(rr.Body.Bytes(), &response)
 
 	assert.Equal(t, expectedResponse.ID, response.ID)
@@ -92,7 +108,7 @@ func TestUpdateOrganization(t *testing.T) {
 	service := new(MockOrganizationService)
 	handler := organization_handler.NewOrganizationHandler(service)
 
-	reqBody := &handler_models.UpdateOrganizationRequest{
+	reqBody := &organization_handler_models.UpdateOrganizationRequest{
 		Name:        "Updated Organization",
 		Description: "An updated organization",
 		Type:        "LLC",
@@ -122,7 +138,7 @@ func TestUpdateOrganization(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
-	var response handler_models.OrganizationResponse
+	var response organization_handler_models.OrganizationResponse
 	json.Unmarshal(rr.Body.Bytes(), &response)
 
 	assert.Equal(t, expectedResponse.ID, response.ID)
@@ -160,7 +176,7 @@ func TestGetOrganizationByID(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
-	var response handler_models.OrganizationResponse
+	var response organization_handler_models.OrganizationResponse
 	json.Unmarshal(rr.Body.Bytes(), &response)
 
 	assert.Equal(t, expectedResponse.ID, response.ID)
@@ -188,6 +204,85 @@ func TestDeleteOrganization(t *testing.T) {
 	handler.DeleteOrganization(rr, req)
 
 	assert.Equal(t, http.StatusNoContent, rr.Code)
+
+	service.AssertExpectations(t)
+}
+
+func TestAddResponsible(t *testing.T) {
+	service := new(MockOrganizationService)
+	handler := organization_handler.NewOrganizationHandler(service)
+
+	req := httptest.NewRequest("POST", "/api/organizations/1/responsibles/1", nil)
+	rr := httptest.NewRecorder()
+
+	service.On("AddResponsible", mock.Anything, 1, 1).Return(nil)
+
+	vars := map[string]string{
+		"org_id":  "1",
+		"user_id": "1",
+	}
+	req = mux.SetURLVars(req, vars)
+
+	handler.AddResponsible(rr, req)
+
+	assert.Equal(t, http.StatusNoContent, rr.Code)
+	service.AssertExpectations(t)
+}
+
+func TestDeleteResponsible(t *testing.T) {
+	service := new(MockOrganizationService)
+	handler := organization_handler.NewOrganizationHandler(service)
+
+	req := httptest.NewRequest("DELETE", "/api/organizations/1/responsibles/1", nil)
+	rr := httptest.NewRecorder()
+
+	service.On("DeleteResponsible", mock.Anything, 1, 1).Return(nil)
+
+	vars := map[string]string{
+		"org_id":  "1",
+		"user_id": "1",
+	}
+	req = mux.SetURLVars(req, vars)
+
+	handler.DeleteResponsible(rr, req)
+
+	assert.Equal(t, http.StatusNoContent, rr.Code)
+	service.AssertExpectations(t)
+}
+
+func TestGetResponsibles(t *testing.T) {
+	service := new(MockOrganizationService)
+	handler := organization_handler.NewOrganizationHandler(service)
+
+	req := httptest.NewRequest("GET", "/api/organizations/1/responsibles", nil)
+	rr := httptest.NewRecorder()
+
+	expectedUsers := []*user_models.UserModel{
+		{
+			ID:        1,
+			Username:  "jdoe",
+			FirstName: "John",
+			LastName:  "Doe",
+		},
+	}
+
+	service.On("GetResponsibles", mock.Anything, 1).Return(expectedUsers, nil)
+
+	vars := map[string]string{
+		"org_id": "1",
+	}
+	req = mux.SetURLVars(req, vars)
+
+	handler.GetResponsibles(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	var response []*user_models.UserModel
+	json.Unmarshal(rr.Body.Bytes(), &response)
+
+	assert.Equal(t, len(expectedUsers), len(response))
+	assert.Equal(t, expectedUsers[0].ID, response[0].ID)
+	assert.Equal(t, expectedUsers[0].Username, response[0].Username)
 
 	service.AssertExpectations(t)
 }
