@@ -4,5 +4,4 @@ package tender_handler_models
 type UpdateTenderRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	ServiceType string `json:"service_type"`
 }

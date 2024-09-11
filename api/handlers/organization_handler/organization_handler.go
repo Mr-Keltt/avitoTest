@@ -6,6 +6,7 @@ import (
 	"avitoTest/services/organization_service"
 	"avitoTest/services/organization_service/organization_models"
 	"avitoTest/shared"
+	"avitoTest/shared/errors/api_errors"
 	"net/http"
 	"strconv"
 
@@ -31,13 +32,13 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 	var req organization_handler_models.CreateOrganizationRequest
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
 		shared.Logger.Errorf("CreateOrganization: Failed to decode request: %v", err)
-		render.Render(w, r, shared.ErrInvalidRequest(err))
+		render.Render(w, r, api_errors.ErrInvalidRequest(err))
 		return
 	}
 
 	if err := h.validate.Struct(req); err != nil {
 		shared.Logger.Errorf("CreateOrganization: Validation failed: %v", err)
-		render.Render(w, r, shared.ErrInvalidRequest(err))
+		render.Render(w, r, api_errors.ErrInvalidRequest(err))
 		return
 	}
 
@@ -50,7 +51,7 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 	})
 	if err != nil {
 		shared.Logger.Errorf("CreateOrganization: Failed to create organization: %v", err)
-		render.Render(w, r, shared.ErrInternal(err))
+		render.Render(w, r, api_errors.ErrInternal(err))
 		return
 	}
 
@@ -73,14 +74,14 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
 		shared.Logger.Errorf("UpdateOrganization: Invalid organization ID: %v", err)
-		render.Render(w, r, shared.ErrInvalidRequest(err))
+		render.Render(w, r, api_errors.ErrInvalidRequest(err))
 		return
 	}
 
 	var req organization_handler_models.UpdateOrganizationRequest
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
 		shared.Logger.Errorf("UpdateOrganization: Failed to decode request body: %v", err)
-		render.Render(w, r, shared.ErrInvalidRequest(err))
+		render.Render(w, r, api_errors.ErrInvalidRequest(err))
 		return
 	}
 
@@ -88,7 +89,7 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 
 	if err := h.validate.Struct(req); err != nil {
 		shared.Logger.Errorf("UpdateOrganization: Validation failed: %v", err)
-		render.Render(w, r, shared.ErrInvalidRequest(err))
+		render.Render(w, r, api_errors.ErrInvalidRequest(err))
 		return
 	}
 
@@ -100,7 +101,7 @@ func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.
 	})
 	if err != nil {
 		shared.Logger.Errorf("UpdateOrganization: Failed to update organization: %v", err)
-		render.Render(w, r, shared.ErrInternal(err))
+		render.Render(w, r, api_errors.ErrInternal(err))
 		return
 	}
 
@@ -121,7 +122,7 @@ func (h *OrganizationHandler) GetOrganizations(w http.ResponseWriter, r *http.Re
 	organizations, err := h.service.GetOrganizations(r.Context())
 	if err != nil {
 		shared.Logger.Errorf("GetOrganizations: Failed to fetch organizations: %v", err)
-		render.Render(w, r, shared.ErrInternal(err))
+		render.Render(w, r, api_errors.ErrInternal(err))
 		return
 	}
 
@@ -153,7 +154,7 @@ func (h *OrganizationHandler) GetOrganizationByID(w http.ResponseWriter, r *http
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
 		shared.Logger.Errorf("GetOrganizationByID: Invalid organization ID: %v", err)
-		render.Render(w, r, shared.ErrInvalidRequest(err))
+		render.Render(w, r, api_errors.ErrInvalidRequest(err))
 		return
 	}
 
@@ -162,7 +163,7 @@ func (h *OrganizationHandler) GetOrganizationByID(w http.ResponseWriter, r *http
 	org, err := h.service.GetOrganizationByID(r.Context(), id)
 	if err != nil {
 		shared.Logger.Errorf("GetOrganizationByID: Failed to get organization by ID: %v", err)
-		render.Render(w, r, shared.ErrInternal(err))
+		render.Render(w, r, api_errors.ErrInternal(err))
 		return
 	}
 
@@ -191,7 +192,7 @@ func (h *OrganizationHandler) DeleteOrganization(w http.ResponseWriter, r *http.
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
 		shared.Logger.Errorf("DeleteOrganization: Invalid organization ID: %v", err)
-		render.Render(w, r, shared.ErrInvalidRequest(err))
+		render.Render(w, r, api_errors.ErrInvalidRequest(err))
 		return
 	}
 
@@ -200,7 +201,7 @@ func (h *OrganizationHandler) DeleteOrganization(w http.ResponseWriter, r *http.
 	err = h.service.DeleteOrganization(r.Context(), id)
 	if err != nil {
 		shared.Logger.Errorf("DeleteOrganization: Failed to delete organization: %v", err)
-		render.Render(w, r, shared.ErrInternal(err))
+		render.Render(w, r, api_errors.ErrInternal(err))
 		return
 	}
 
@@ -219,20 +220,20 @@ func (h *OrganizationHandler) AddResponsible(w http.ResponseWriter, r *http.Requ
 	orgID, err := strconv.Atoi(orgIDParam)
 	if err != nil {
 		shared.Logger.Errorf("AddResponsible: Invalid organization ID: %v", err)
-		render.Render(w, r, shared.ErrInvalidRequest(err))
+		render.Render(w, r, api_errors.ErrInvalidRequest(err))
 		return
 	}
 
 	userID, err := strconv.Atoi(userIDParam)
 	if err != nil {
 		shared.Logger.Errorf("AddResponsible: Invalid user ID: %v", err)
-		render.Render(w, r, shared.ErrInvalidRequest(err))
+		render.Render(w, r, api_errors.ErrInvalidRequest(err))
 		return
 	}
 
 	if err := h.service.AddResponsible(r.Context(), orgID, userID); err != nil {
 		shared.Logger.Errorf("AddResponsible: Failed to add responsible user: %v", err)
-		render.Render(w, r, shared.ErrInternal(err))
+		render.Render(w, r, api_errors.ErrInternal(err))
 		return
 	}
 
@@ -248,20 +249,20 @@ func (h *OrganizationHandler) DeleteResponsible(w http.ResponseWriter, r *http.R
 	orgID, err := strconv.Atoi(orgIDParam)
 	if err != nil {
 		shared.Logger.Errorf("DeleteResponsible: Invalid organization ID: %v", err)
-		render.Render(w, r, shared.ErrInvalidRequest(err))
+		render.Render(w, r, api_errors.ErrInvalidRequest(err))
 		return
 	}
 
 	userID, err := strconv.Atoi(userIDParam)
 	if err != nil {
 		shared.Logger.Errorf("DeleteResponsible: Invalid user ID: %v", err)
-		render.Render(w, r, shared.ErrInvalidRequest(err))
+		render.Render(w, r, api_errors.ErrInvalidRequest(err))
 		return
 	}
 
 	if err := h.service.DeleteResponsible(r.Context(), orgID, userID); err != nil {
 		shared.Logger.Errorf("DeleteResponsible: Failed to delete responsible user: %v", err)
-		render.Render(w, r, shared.ErrInternal(err))
+		render.Render(w, r, api_errors.ErrInternal(err))
 		return
 	}
 
@@ -276,14 +277,14 @@ func (h *OrganizationHandler) GetResponsibles(w http.ResponseWriter, r *http.Req
 	orgID, err := strconv.Atoi(orgIDParam)
 	if err != nil {
 		shared.Logger.Errorf("GetResponsibles: Invalid organization ID: %v", err)
-		render.Render(w, r, shared.ErrInvalidRequest(err))
+		render.Render(w, r, api_errors.ErrInvalidRequest(err))
 		return
 	}
 
 	users, err := h.service.GetResponsibles(r.Context(), orgID)
 	if err != nil {
 		shared.Logger.Errorf("GetResponsibles: Failed to get responsible users: %v", err)
-		render.Render(w, r, shared.ErrInternal(err))
+		render.Render(w, r, api_errors.ErrInternal(err))
 		return
 	}
 
@@ -309,21 +310,21 @@ func (h *OrganizationHandler) GetResponsibleByID(w http.ResponseWriter, r *http.
 	orgID, err := strconv.Atoi(orgIDParam)
 	if err != nil {
 		shared.Logger.Errorf("GetResponsibleByID: Invalid organization ID: %v", err)
-		render.Render(w, r, shared.ErrInvalidRequest(err))
+		render.Render(w, r, api_errors.ErrInvalidRequest(err))
 		return
 	}
 
 	userID, err := strconv.Atoi(userIDParam)
 	if err != nil {
 		shared.Logger.Errorf("GetResponsibleByID: Invalid user ID: %v", err)
-		render.Render(w, r, shared.ErrInvalidRequest(err))
+		render.Render(w, r, api_errors.ErrInvalidRequest(err))
 		return
 	}
 
 	user, err := h.service.GetResponsibleByID(r.Context(), orgID, userID)
 	if err != nil {
 		shared.Logger.Errorf("GetResponsibleByID: Failed to get responsible user: %v", err)
-		render.Render(w, r, shared.ErrInternal(err))
+		render.Render(w, r, api_errors.ErrInternal(err))
 		return
 	}
 

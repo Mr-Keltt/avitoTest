@@ -48,6 +48,11 @@ func (m *MockUserService) DeleteUser(ctx context.Context, id int) error {
 	return args.Error(0)
 }
 
+func (m *MockUserService) GetUserByUsername(ctx context.Context, username string) (*user_models.UserModel, error) {
+	args := m.Called(ctx, username)
+	return args.Get(0).(*user_models.UserModel), args.Error(1)
+}
+
 func TestCreateUser(t *testing.T) {
 	service := new(MockUserService)
 	handler := user_handler.NewUserHandler(service)

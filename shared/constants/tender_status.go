@@ -1,4 +1,4 @@
-package tender_models
+package constants
 
 type TenderStatus string
 

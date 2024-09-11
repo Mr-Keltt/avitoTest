@@ -10,8 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-var ErrTenderNotFound = errors.New("tender not found")
-
 type tenderRepositoryGorm struct {
 	db *gorm.DB
 }
@@ -47,6 +45,16 @@ func (r *tenderRepositoryGorm) FindByID(ctx context.Context, id int) (*entities.
 func (r *tenderRepositoryGorm) GetAll(ctx context.Context) ([]*entities.Tender, error) {
 	var tenders []*entities.Tender
 	if err := r.db.WithContext(ctx).Preload("Versions").Find(&tenders).Error; err != nil {
+		return nil, err
+	}
+	return tenders, nil
+}
+
+// GetAllByServiceType retrieves all tenders filtered by service type.
+func (r *tenderRepositoryGorm) GetAllByServiceType(ctx context.Context, serviceType string) ([]*entities.Tender, error) {
+	var tenders []*entities.Tender
+	if err := r.db.WithContext(ctx).
+		Where("service_type = ?", serviceType).Preload("Versions").Find(&tenders).Error; err != nil {
 		return nil, err
 	}
 	return tenders, nil

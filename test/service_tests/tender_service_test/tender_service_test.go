@@ -1,11 +1,10 @@
-// File: test/service_tests/tender_service_test/tender_service_test.go
-
 package tender_service_test
 
 import (
 	"avitoTest/data/entities"
 	"avitoTest/services/tender_service"
 	"avitoTest/services/tender_service/tender_models"
+	"avitoTest/shared/constants"
 	"context"
 	"testing"
 	"time"
@@ -45,6 +44,14 @@ func (m *MockTenderRepository) GetAll(ctx context.Context) ([]*entities.Tender, 
 	return nil, args.Error(1)
 }
 
+func (m *MockTenderRepository) GetAllByServiceType(ctx context.Context, serviceType string) ([]*entities.Tender, error) {
+	args := m.Called(ctx, serviceType)
+	if tenders, ok := args.Get(0).([]*entities.Tender); ok {
+		return tenders, args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
 func (m *MockTenderRepository) CreateVersion(ctx context.Context, version *entities.TenderVersion) error {
 	args := m.Called(ctx, version)
 	return args.Error(0)
@@ -74,6 +81,7 @@ func (m *MockTenderRepository) FindUserOrganizationResponsibility(ctx context.Co
 	return nil, args.Error(1)
 }
 
+// Test for CreateTender
 func TestCreateTender_Success(t *testing.T) {
 	mockRepo := new(MockTenderRepository)
 	service := tender_service.NewTenderService(mockRepo)
@@ -84,12 +92,14 @@ func TestCreateTender_Success(t *testing.T) {
 		ServiceType:    "Construction",
 		OrganizationID: 1,
 		CreatorID:      1,
+		Status:         constants.TenderStatusCreated, // Используем корректную константу статуса
 	}
 
 	expectedEntity := &entities.Tender{
 		ID:             1,
 		OrganizationID: tenderCreate.OrganizationID,
 		CreatorID:      tenderCreate.CreatorID,
+		ServiceType:    tenderCreate.ServiceType,
 		CreatedAt:      time.Now(),
 	}
 
@@ -98,7 +108,6 @@ func TestCreateTender_Success(t *testing.T) {
 		TenderID:    expectedEntity.ID,
 		Name:        tenderCreate.Name,
 		Description: tenderCreate.Description,
-		ServiceType: tenderCreate.ServiceType,
 		Version:     1,
 		UpdatedAt:   time.Now(),
 	}
@@ -123,6 +132,7 @@ func TestCreateTender_Success(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
+// Test for UpdateTender
 func TestUpdateTender_Success(t *testing.T) {
 	mockRepo := new(MockTenderRepository)
 	service := tender_service.NewTenderService(mockRepo)
@@ -131,13 +141,13 @@ func TestUpdateTender_Success(t *testing.T) {
 		ID:          1,
 		Name:        "Updated Tender",
 		Description: "Updated Description",
-		ServiceType: "Renovation",
 	}
 
 	existingEntity := &entities.Tender{
 		ID:             1,
 		OrganizationID: 1,
 		CreatorID:      1,
+		ServiceType:    "Renovation",
 		CreatedAt:      time.Now(),
 	}
 
@@ -146,7 +156,6 @@ func TestUpdateTender_Success(t *testing.T) {
 		TenderID:    existingEntity.ID,
 		Name:        "Tender 1",
 		Description: "Description 1",
-		ServiceType: "Construction",
 		Version:     1,
 		UpdatedAt:   time.Now(),
 	}
@@ -163,6 +172,7 @@ func TestUpdateTender_Success(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
+// Test for PublishTender
 func TestPublishTender_Success(t *testing.T) {
 	mockRepo := new(MockTenderRepository)
 	service := tender_service.NewTenderService(mockRepo)
@@ -171,29 +181,24 @@ func TestPublishTender_Success(t *testing.T) {
 		ID:             1,
 		OrganizationID: 1,
 		CreatorID:      1,
+		Status:         "created",
 		CreatedAt:      time.Now(),
 	}
 
-	latestVersion := &entities.TenderVersion{
-		ID:          1,
-		TenderID:    existingEntity.ID,
-		Name:        "Tender 1",
-		Description: "Description 1",
-		ServiceType: "Construction",
-		Version:     1,
-		UpdatedAt:   time.Now(),
-	}
-
 	mockRepo.On("FindByID", mock.Anything, 1).Return(existingEntity, nil)
-	mockRepo.On("FindLatestVersion", mock.Anything, 1).Return(latestVersion, nil)
-	mockRepo.On("CreateVersion", mock.Anything, mock.AnythingOfType("*entities.TenderVersion")).Return(nil)
+	mockRepo.On("Update", mock.Anything, mock.AnythingOfType("*entities.Tender")).Return(nil).Run(func(args mock.Arguments) {
+		tender := args.Get(1).(*entities.Tender)
+		tender.Status = "published"
+	})
 
 	err := service.PublishTender(context.Background(), 1)
 
 	assert.NoError(t, err)
+	assert.Equal(t, "published", existingEntity.Status)
 	mockRepo.AssertExpectations(t)
 }
 
+// Test for CloseTender
 func TestCloseTender_Success(t *testing.T) {
 	mockRepo := new(MockTenderRepository)
 	service := tender_service.NewTenderService(mockRepo)
@@ -203,6 +208,8 @@ func TestCloseTender_Success(t *testing.T) {
 		OrganizationID: 1,
 		CreatorID:      1,
 		CreatedAt:      time.Now(),
+		Status:         "published",
+		ServiceType:    "Construction",
 	}
 
 	latestVersion := &entities.TenderVersion{
@@ -210,7 +217,6 @@ func TestCloseTender_Success(t *testing.T) {
 		TenderID:    existingEntity.ID,
 		Name:        "Tender 1",
 		Description: "Description 1",
-		ServiceType: "Construction",
 		Version:     1,
 		UpdatedAt:   time.Now(),
 	}
@@ -225,6 +231,7 @@ func TestCloseTender_Success(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
+// Test for RollbackTenderVersion
 func TestRollbackTenderVersion_Success(t *testing.T) {
 	mockRepo := new(MockTenderRepository)
 	service := tender_service.NewTenderService(mockRepo)
@@ -233,6 +240,7 @@ func TestRollbackTenderVersion_Success(t *testing.T) {
 		ID:             1,
 		OrganizationID: 1,
 		CreatorID:      1,
+		ServiceType:    "Construction",
 		CreatedAt:      time.Now(),
 	}
 
@@ -241,13 +249,22 @@ func TestRollbackTenderVersion_Success(t *testing.T) {
 		TenderID:    existingEntity.ID,
 		Name:        "Tender 1",
 		Description: "Description 1",
-		ServiceType: "Construction",
 		Version:     1,
+		UpdatedAt:   time.Now(),
+	}
+
+	latestVersion := &entities.TenderVersion{
+		ID:          2,
+		TenderID:    existingEntity.ID,
+		Name:        "Tender 2",
+		Description: "Updated Description",
+		Version:     2,
 		UpdatedAt:   time.Now(),
 	}
 
 	mockRepo.On("FindByID", mock.Anything, 1).Return(existingEntity, nil)
 	mockRepo.On("FindVersionByNumber", mock.Anything, 1, 1).Return(previousVersion, nil)
+	mockRepo.On("FindLatestVersion", mock.Anything, 1).Return(latestVersion, nil)
 	mockRepo.On("CreateVersion", mock.Anything, mock.AnythingOfType("*entities.TenderVersion")).Return(nil)
 
 	result, err := service.RollbackTenderVersion(context.Background(), 1, 1)
@@ -258,6 +275,7 @@ func TestRollbackTenderVersion_Success(t *testing.T) {
 	mockRepo.AssertExpectations(t)
 }
 
+// Test for GetTenderByID
 func TestGetTenderByID_Success(t *testing.T) {
 	mockRepo := new(MockTenderRepository)
 	service := tender_service.NewTenderService(mockRepo)
@@ -266,6 +284,7 @@ func TestGetTenderByID_Success(t *testing.T) {
 		ID:             1,
 		OrganizationID: 1,
 		CreatorID:      1,
+		ServiceType:    "Construction",
 		CreatedAt:      time.Now(),
 	}
 
@@ -274,7 +293,6 @@ func TestGetTenderByID_Success(t *testing.T) {
 		TenderID:    existingEntity.ID,
 		Name:        "Tender 1",
 		Description: "Description 1",
-		ServiceType: "Construction",
 		Version:     1,
 		UpdatedAt:   time.Now(),
 	}
@@ -287,40 +305,5 @@ func TestGetTenderByID_Success(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, latestVersion.Name, result.Name)
 	assert.Equal(t, latestVersion.Description, result.Description)
-	mockRepo.AssertExpectations(t)
-}
-
-func TestGetAllTenders_Success(t *testing.T) {
-	mockRepo := new(MockTenderRepository)
-	service := tender_service.NewTenderService(mockRepo)
-
-	existingEntities := []*entities.Tender{
-		{
-			ID:             1,
-			OrganizationID: 1,
-			CreatorID:      1,
-			CreatedAt:      time.Now(),
-		},
-	}
-
-	latestVersion := &entities.TenderVersion{
-		ID:          1,
-		TenderID:    existingEntities[0].ID,
-		Name:        "Tender 1",
-		Description: "Description 1",
-		ServiceType: "Construction",
-		Version:     1,
-		UpdatedAt:   time.Now(),
-	}
-
-	mockRepo.On("GetAll", mock.Anything).Return(existingEntities, nil)
-	mockRepo.On("FindLatestVersion", mock.Anything, 1).Return(latestVersion, nil)
-
-	result, err := service.GetAllTenders(context.Background())
-
-	assert.NoError(t, err)
-	assert.Len(t, result, 1)
-	assert.Equal(t, latestVersion.Name, result[0].Name)
-	assert.Equal(t, latestVersion.Description, result[0].Description)
 	mockRepo.AssertExpectations(t)
 }

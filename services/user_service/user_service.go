@@ -14,9 +14,10 @@ import (
 
 type UserService interface {
 	CreateUser(ctx context.Context, user user_models.UserCreateModel) (*user_models.UserModel, error)
-	UpdateUser(ctx context.Context, user user_models.UserUpdateModel) (*user_models.UserModel, error)
 	GetUsers(ctx context.Context) ([]*user_models.UserModel, error)
 	GetUserByID(ctx context.Context, id int) (*user_models.UserModel, error)
+	GetUserByUsername(ctx context.Context, username string) (*user_models.UserModel, error)
+	UpdateUser(ctx context.Context, user user_models.UserUpdateModel) (*user_models.UserModel, error)
 	DeleteUser(ctx context.Context, id int) error
 }
 
@@ -113,10 +114,7 @@ func (s *userService) GetUsers(ctx context.Context) ([]*user_models.UserModel, e
 func (s *userService) GetUserByID(ctx context.Context, id int) (*user_models.UserModel, error) {
 	entity, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		if errors.Is(err, user_repository.ErrUserNotFound) {
-			return nil, errors.New("user not found")
-		}
-		return nil, err
+		return nil, user_repository.ErrUserNotFound
 	}
 
 	return &user_models.UserModel{
@@ -126,6 +124,22 @@ func (s *userService) GetUserByID(ctx context.Context, id int) (*user_models.Use
 		LastName:  entity.LastName,
 		CreatedAt: entity.CreatedAt,
 		UpdatedAt: entity.UpdatedAt,
+	}, nil
+}
+
+func (s *userService) GetUserByUsername(ctx context.Context, username string) (*user_models.UserModel, error) {
+	userEntity, err := s.repo.FindByUsername(ctx, username)
+	if err != nil {
+		return nil, user_repository.ErrUserNotFound
+	}
+
+	return &user_models.UserModel{
+		ID:        userEntity.ID,
+		Username:  userEntity.Username,
+		FirstName: userEntity.FirstName,
+		LastName:  userEntity.LastName,
+		CreatedAt: userEntity.CreatedAt,
+		UpdatedAt: userEntity.UpdatedAt,
 	}, nil
 }
 

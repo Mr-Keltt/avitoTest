@@ -13,6 +13,7 @@ type TenderRepository interface {
 	Update(ctx context.Context, tender *entities.Tender) error
 	FindByID(ctx context.Context, id int) (*entities.Tender, error)
 	GetAll(ctx context.Context) ([]*entities.Tender, error)
+	GetAllByServiceType(ctx context.Context, serviceType string) ([]*entities.Tender, error)
 
 	// Tender Version Management
 	CreateVersion(ctx context.Context, version *entities.TenderVersion) error

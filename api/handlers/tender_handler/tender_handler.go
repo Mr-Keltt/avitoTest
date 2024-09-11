@@ -4,6 +4,8 @@ import (
 	"avitoTest/api/handlers/tender_handler/tender_handler_models"
 	"avitoTest/services/tender_service"
 	"avitoTest/services/tender_service/tender_models"
+	"avitoTest/services/user_service"
+	"avitoTest/shared/constants"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -12,11 +14,15 @@ import (
 )
 
 type TenderHandler struct {
-	service tender_service.TenderService
+	tender_service tender_service.TenderService
+	user_service   user_service.UserService
 }
 
-func NewTenderHandler(service tender_service.TenderService) *TenderHandler {
-	return &TenderHandler{service: service}
+func NewTenderHandler(tender_service tender_service.TenderService, user_service user_service.UserService) *TenderHandler {
+	return &TenderHandler{
+		tender_service: tender_service,
+		user_service:   user_service,
+	}
 }
 
 // CreateTender handles the creation of a new tender
@@ -27,25 +33,36 @@ func (h *TenderHandler) CreateTender(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get CreatorID based on CreatorUsername
+	user, err := h.user_service.GetUserByUsername(r.Context(), req.CreatorUsername)
+	if err != nil {
+		http.Error(w, "Invalid creator username", http.StatusBadRequest)
+		return
+	}
+
+	// Create model for creating the tender
 	tenderCreateModel := tender_models.TenderCreateModel{
 		Name:           req.Name,
 		Description:    req.Description,
 		ServiceType:    req.ServiceType,
+		Status:         constants.TenderStatus(req.Status),
 		OrganizationID: req.OrganizationID,
-		CreatorID:      req.CreatorID, // Assume CreatorID is passed in the request body
+		CreatorID:      user.ID,
 	}
 
-	tender, err := h.service.CreateTender(r.Context(), tenderCreateModel)
+	// Create tender via service
+	tender, err := h.tender_service.CreateTender(r.Context(), tenderCreateModel)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	// Form response with all relevant fields
 	resp := tender_handler_models.TenderResponse{
 		ID:             tender.ID,
 		Name:           tender.Name,
 		Description:    tender.Description,
-		ServiceType:    tender.ServiceType,
+		ServiceType:    tender.ServiceType, // Correctly set ServiceType
 		Status:         string(tender.Status),
 		OrganizationID: tender.OrganizationID,
 		CreatedAt:      tender.CreatedAt,
@@ -53,14 +70,22 @@ func (h *TenderHandler) CreateTender(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(resp)
 }
 
-// GetTenders handles fetching all tenders with optional filtering
+// GetTenders handles fetching all tenders with optional filtering by service type
 func (h *TenderHandler) GetTenders(w http.ResponseWriter, r *http.Request) {
-	tenders, err := h.service.GetAllTenders(r.Context())
+	// Getting the filter value from the query parameters
+	serviceTypeFilter := r.URL.Query().Get("serviceType")
+
+	// Calling a service with a filter
+	tenders, err := h.tender_service.GetAllTenders(r.Context(), serviceTypeFilter)
 	if err != nil {
+		if err.Error() == "invalid service type" {
+			http.Error(w, "Invalid service type provided", http.StatusBadRequest)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -93,7 +118,7 @@ func (h *TenderHandler) GetTenderByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tender, err := h.service.GetTenderByID(r.Context(), id)
+	tender, err := h.tender_service.GetTenderByID(r.Context(), id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -134,10 +159,9 @@ func (h *TenderHandler) UpdateTender(w http.ResponseWriter, r *http.Request) {
 		ID:          id,
 		Name:        req.Name,
 		Description: req.Description,
-		ServiceType: req.ServiceType,
 	}
 
-	tender, err := h.service.UpdateTender(r.Context(), tenderUpdateModel)
+	tender, err := h.tender_service.UpdateTender(r.Context(), tenderUpdateModel)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -168,7 +192,7 @@ func (h *TenderHandler) PublishTender(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.PublishTender(r.Context(), id); err != nil {
+	if err := h.tender_service.PublishTender(r.Context(), id); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -185,7 +209,7 @@ func (h *TenderHandler) CloseTender(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.CloseTender(r.Context(), id); err != nil {
+	if err := h.tender_service.CloseTender(r.Context(), id); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -209,7 +233,7 @@ func (h *TenderHandler) RollbackTenderVersion(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	tender, err := h.service.RollbackTenderVersion(r.Context(), tenderID, version)
+	tender, err := h.tender_service.RollbackTenderVersion(r.Context(), tenderID, version)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -41,6 +41,15 @@ func (r *UserRepositoryGorm) FindByID(ctx context.Context, id int) (*entities.Us
 	return &user, nil
 }
 
+func (r *UserRepositoryGorm) FindByUsername(ctx context.Context, username string) (*entities.User, error) {
+	var user entities.User
+	// Пример поиска в базе данных с использованием GORM
+	if err := r.db.Where("username = ?", username).First(&user).Error; err != nil {
+		return nil, ErrUserNotFound
+	}
+	return &user, nil
+}
+
 func (r *UserRepositoryGorm) Update(ctx context.Context, user *entities.User) error {
 	return r.db.WithContext(ctx).Save(user).Error
 }

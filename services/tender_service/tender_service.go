@@ -6,15 +6,12 @@ import (
 	"avitoTest/data/entities"
 	"avitoTest/data/repositories/tender_repository"
 	"avitoTest/services/tender_service/tender_models"
+	"avitoTest/shared/constants"
+	"avitoTest/shared/errors/tendert_erorrs"
+	"avitoTest/shared/validators"
 	"context"
 	"errors"
 	"time"
-)
-
-var (
-	ErrTenderNotFound        = errors.New("tender not found")
-	ErrUnauthorized          = errors.New("user not authorized")
-	ErrTenderVersionNotFound = errors.New("tender version not found")
 )
 
 type TenderService interface {
@@ -24,7 +21,7 @@ type TenderService interface {
 	CloseTender(ctx context.Context, tenderID int) error
 	GetTenderByID(ctx context.Context, id int) (*tender_models.TenderModel, error)
 	RollbackTenderVersion(ctx context.Context, tenderID int, version int) (*tender_models.TenderModel, error)
-	GetAllTenders(ctx context.Context) ([]*tender_models.TenderModel, error)
+	GetAllTenders(ctx context.Context, serviceTypeFilter string) ([]*tender_models.TenderModel, error)
 }
 
 type tenderService struct {
@@ -35,29 +32,43 @@ func NewTenderService(repo tender_repository.TenderRepository) TenderService {
 	return &tenderService{repo: repo}
 }
 
-// CreateTender creates a new tender and the initial version
+// CreateTender создает новый тендер и проверяет статус
 func (s *tenderService) CreateTender(ctx context.Context, tender tender_models.TenderCreateModel) (*tender_models.TenderModel, error) {
 	if !s.isUserResponsibleForOrganization(ctx, tender.CreatorID, tender.OrganizationID) {
-		return nil, ErrUnauthorized
+		return nil, tendert_erorrs.ErrUnauthorized
+	}
+
+	// Validate the ServiceType using predefined constants
+	if tender.ServiceType != string(constants.ServiceTypeConstruction) &&
+		tender.ServiceType != string(constants.ServiceTypeIT) &&
+		tender.ServiceType != string(constants.ServiceTypeConsulting) {
+		return nil, errors.New("invalid service type")
+	}
+
+	// Check for valid tender status
+	if tender.Status != constants.TenderStatusCreated && tender.Status != constants.TenderStatusPublished {
+		return nil, tendert_erorrs.ErrInvalidStatus
 	}
 
 	entity := &entities.Tender{
 		OrganizationID: tender.OrganizationID,
 		CreatorID:      tender.CreatorID,
+		Status:         string(tender.Status),
+		ServiceType:    tender.ServiceType,
 		CreatedAt:      time.Now(),
 	}
 
+	// Create the tender
 	if err := s.repo.Create(ctx, entity); err != nil {
 		return nil, err
 	}
 
-	// Create initial version
+	// Create the initial version of the tender
 	version := &entities.TenderVersion{
 		TenderID:    entity.ID,
 		Name:        tender.Name,
 		Description: tender.Description,
-		ServiceType: tender.ServiceType,
-		Version:     1, // Initial version
+		Version:     1,
 		UpdatedAt:   time.Now(),
 	}
 
@@ -70,8 +81,8 @@ func (s *tenderService) CreateTender(ctx context.Context, tender tender_models.T
 		OrganizationID: entity.OrganizationID,
 		Name:           version.Name,
 		Description:    version.Description,
-		ServiceType:    version.ServiceType,
-		Status:         tender_models.TenderStatusCreated, // Set the initial status
+		ServiceType:    entity.ServiceType,
+		Status:         tender.Status,
 		CreatedAt:      entity.CreatedAt,
 		Version:        version.Version,
 	}, nil
@@ -81,8 +92,8 @@ func (s *tenderService) CreateTender(ctx context.Context, tender tender_models.T
 func (s *tenderService) UpdateTender(ctx context.Context, tender tender_models.TenderUpdateModel) (*tender_models.TenderModel, error) {
 	entity, err := s.repo.FindByID(ctx, tender.ID)
 	if err != nil {
-		if errors.Is(err, tender_repository.ErrTenderNotFound) {
-			return nil, ErrTenderNotFound
+		if errors.Is(err, tendert_erorrs.ErrTenderNotFound) {
+			return nil, tendert_erorrs.ErrTenderNotFound
 		}
 		return nil, err
 	}
@@ -101,7 +112,6 @@ func (s *tenderService) UpdateTender(ctx context.Context, tender tender_models.T
 		TenderID:    entity.ID,
 		Name:        tender.Name,
 		Description: tender.Description,
-		ServiceType: tender.ServiceType,
 		Version:     newVersion,
 		UpdatedAt:   time.Now(),
 	}
@@ -115,38 +125,24 @@ func (s *tenderService) UpdateTender(ctx context.Context, tender tender_models.T
 		OrganizationID: entity.OrganizationID,
 		Name:           version.Name,
 		Description:    version.Description,
-		ServiceType:    version.ServiceType,
-		Status:         latestVersionStatus(newVersion), // Determine status based on new version
+		ServiceType:    entity.ServiceType,
+		Status:         constants.TenderStatus(entity.Status),
 		CreatedAt:      entity.CreatedAt,
 		Version:        version.Version,
 	}, nil
 }
 
-// PublishTender sets the status of the tender to PUBLISHED
+// PublishTender обновляет статус тендера на PUBLISHED, не изменяя версию
 func (s *tenderService) PublishTender(ctx context.Context, tenderID int) error {
 	entity, err := s.repo.FindByID(ctx, tenderID)
 	if err != nil {
 		return err
 	}
 
-	// Find the latest version of the tender
-	latestVersion, err := s.repo.FindLatestVersion(ctx, tenderID)
-	if err != nil {
-		return err
-	}
+	//Update the status without changing the version
+	entity.Status = string(constants.TenderStatusPublished)
 
-	// Update the status indirectly by creating a new version with the updated status
-	newVersion := latestVersion.Version + 1
-	version := &entities.TenderVersion{
-		TenderID:    entity.ID,
-		Name:        latestVersion.Name,
-		Description: latestVersion.Description,
-		ServiceType: latestVersion.ServiceType,
-		Version:     newVersion,
-		UpdatedAt:   time.Now(),
-	}
-
-	if err := s.repo.CreateVersion(ctx, version); err != nil {
+	if err := s.repo.Update(ctx, entity); err != nil {
 		return err
 	}
 
@@ -172,7 +168,6 @@ func (s *tenderService) CloseTender(ctx context.Context, tenderID int) error {
 		TenderID:    entity.ID,
 		Name:        latestVersion.Name,
 		Description: latestVersion.Description,
-		ServiceType: latestVersion.ServiceType,
 		Version:     newVersion,
 		UpdatedAt:   time.Now(),
 	}
@@ -191,18 +186,23 @@ func (s *tenderService) RollbackTenderVersion(ctx context.Context, tenderID int,
 		return nil, err
 	}
 
+	// Find the latest version of the tender
+	latestVersion, err := s.repo.FindLatestVersion(ctx, tenderID)
+	if err != nil {
+		return nil, err
+	}
+
 	tenderVersion, err := s.repo.FindVersionByNumber(ctx, tenderID, version)
 	if err != nil {
-		return nil, ErrTenderVersionNotFound
+		return nil, tendert_erorrs.ErrTenderVersionNotFound
 	}
 
 	// Create a new version with rolled-back data
-	newVersion := tenderVersion.Version + 1
+	newVersion := latestVersion.Version + 1
 	rollbackVersion := &entities.TenderVersion{
 		TenderID:    entity.ID,
 		Name:        tenderVersion.Name,
 		Description: tenderVersion.Description,
-		ServiceType: tenderVersion.ServiceType,
 		Version:     newVersion,
 		UpdatedAt:   time.Now(),
 	}
@@ -216,16 +216,28 @@ func (s *tenderService) RollbackTenderVersion(ctx context.Context, tenderID int,
 		OrganizationID: entity.OrganizationID,
 		Name:           rollbackVersion.Name,
 		Description:    rollbackVersion.Description,
-		ServiceType:    rollbackVersion.ServiceType,
-		Status:         latestVersionStatus(newVersion), // Determine status based on new version
+		ServiceType:    entity.ServiceType,
+		Status:         constants.TenderStatus(entity.Status),
 		CreatedAt:      entity.CreatedAt,
 		Version:        rollbackVersion.Version,
 	}, nil
 }
 
 // GetAllTenders retrieves all tenders
-func (s *tenderService) GetAllTenders(ctx context.Context) ([]*tender_models.TenderModel, error) {
-	entities, err := s.repo.GetAll(ctx)
+func (s *tenderService) GetAllTenders(ctx context.Context, serviceTypeFilter string) ([]*tender_models.TenderModel, error) {
+	var entities []*entities.Tender
+	var err error
+
+	// Если есть фильтр по типу услуг, используем его
+	if serviceTypeFilter != "" {
+		if !validators.IsValidServiceType(serviceTypeFilter) {
+			return nil, errors.New("invalid service type")
+		}
+		entities, err = s.repo.GetAllByServiceType(ctx, serviceTypeFilter)
+	} else {
+		entities, err = s.repo.GetAll(ctx)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -243,8 +255,7 @@ func (s *tenderService) GetAllTenders(ctx context.Context) ([]*tender_models.Ten
 			OrganizationID: entity.OrganizationID,
 			Name:           latestVersion.Name,
 			Description:    latestVersion.Description,
-			ServiceType:    latestVersion.ServiceType,
-			Status:         latestVersionStatus(latestVersion.Version), // Determine status
+			Status:         constants.TenderStatus(entity.Status),
 			CreatedAt:      entity.CreatedAt,
 			Version:        latestVersion.Version,
 		}
@@ -258,8 +269,8 @@ func (s *tenderService) GetAllTenders(ctx context.Context) ([]*tender_models.Ten
 func (s *tenderService) GetTenderByID(ctx context.Context, id int) (*tender_models.TenderModel, error) {
 	entity, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		if errors.Is(err, tender_repository.ErrTenderNotFound) {
-			return nil, ErrTenderNotFound
+		if errors.Is(err, tendert_erorrs.ErrTenderNotFound) {
+			return nil, tendert_erorrs.ErrTenderNotFound
 		}
 		return nil, err
 	}
@@ -275,8 +286,7 @@ func (s *tenderService) GetTenderByID(ctx context.Context, id int) (*tender_mode
 		OrganizationID: entity.OrganizationID,
 		Name:           latestVersion.Name,
 		Description:    latestVersion.Description,
-		ServiceType:    latestVersion.ServiceType,
-		Status:         latestVersionStatus(latestVersion.Version), // Determine status
+		Status:         constants.TenderStatus(entity.Status),
 		CreatedAt:      entity.CreatedAt,
 		Version:        latestVersion.Version,
 	}, nil
@@ -289,14 +299,4 @@ func (s *tenderService) isUserResponsibleForOrganization(ctx context.Context, us
 		return false
 	}
 	return responsible != nil
-}
-
-// latestVersionStatus determines the status based on the version number or other criteria.
-func latestVersionStatus(version int) tender_models.TenderStatus {
-	// Logic to determine status based on version
-	if version == 1 {
-		return tender_models.TenderStatusCreated
-	}
-	// Example: Return different statuses depending on other conditions
-	return tender_models.TenderStatusPublished
 }
