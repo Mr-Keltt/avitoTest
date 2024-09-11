@@ -3,19 +3,25 @@ package api
 import (
 	"avitoTest/api/handlers/organization_handler"
 	"avitoTest/api/handlers/ping_handler"
+	"avitoTest/api/handlers/tender_handler"
 	"avitoTest/api/handlers/user_handler"
 	"avitoTest/services/organization_service"
+	"avitoTest/services/tender_service"
 	"avitoTest/services/user_service"
 
 	"github.com/gorilla/mux"
 )
 
 // InitRoutes initializes all API routes.
-func InitRoutes(router *mux.Router, orgService organization_service.OrganizationService, userService user_service.UserService) {
+func InitRoutes(router *mux.Router,
+	orgService organization_service.OrganizationService,
+	userService user_service.UserService,
+	tenderService tender_service.TenderService) {
 	// Initialize individual route groups
 	initPingRoutes(router)
 	initOrganizationRoutes(router, orgService)
 	initUserRoutes(router, userService)
+	initTenderRoutes(router, tenderService)
 }
 
 // initPingRoutes sets up routes for server availability checks.
@@ -49,4 +55,17 @@ func initUserRoutes(router *mux.Router, userService user_service.UserService) {
 	router.HandleFunc("/api/users/{id}", userHandler.GetUserByID).Methods("GET")
 	router.HandleFunc("/api/users/{id}", userHandler.UpdateUser).Methods("PATCH")
 	router.HandleFunc("/api/users/{id}", userHandler.DeleteUser).Methods("DELETE")
+}
+
+// initTenderRoutes sets up routes for tender-related operations.
+func initTenderRoutes(router *mux.Router, tenderService tender_service.TenderService) {
+	tenderHandler := tender_handler.NewTenderHandler(tenderService)
+
+	router.HandleFunc("/api/tenders/", tenderHandler.CreateTender).Methods("POST")
+	router.HandleFunc("/api/tenders/", tenderHandler.GetTenders).Methods("GET")
+	router.HandleFunc("/api/tenders/{tenderId}", tenderHandler.GetTenderByID).Methods("GET")
+	router.HandleFunc("/api/tenders/{tenderId}/edit", tenderHandler.UpdateTender).Methods("PATCH")
+	router.HandleFunc("/api/tenders/{tenderId}/publish", tenderHandler.PublishTender).Methods("POST")
+	router.HandleFunc("/api/tenders/{tenderId}/close", tenderHandler.CloseTender).Methods("POST")
+	router.HandleFunc("/api/tenders/{tenderId}/rollback/{version}", tenderHandler.RollbackTenderVersion).Methods("PUT")
 }
