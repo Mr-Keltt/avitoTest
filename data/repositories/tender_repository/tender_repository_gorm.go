@@ -1,5 +1,3 @@
-// File: data/repositories/tender_repository/tender_repository_gorm.go
-
 package tender_repository
 
 import (

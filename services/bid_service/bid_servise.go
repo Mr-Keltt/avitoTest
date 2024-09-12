@@ -3,7 +3,9 @@ package bid_service
 import (
 	"avitoTest/data/entities"
 	"avitoTest/data/repositories/bid_repository"
+	"avitoTest/data/repositories/organization_repository"
 	"avitoTest/services/bid_service/bid_models"
+	"avitoTest/shared"
 	"context"
 	"errors"
 	"time"
@@ -23,10 +25,14 @@ type BidService interface {
 
 type bidService struct {
 	bidRepo bid_repository.BidRepository
+	orgRepo organization_repository.OrganizationRepository
 }
 
-func NewBidService(bidRepo bid_repository.BidRepository) BidService {
-	return &bidService{bidRepo: bidRepo}
+func NewBidService(bidRepo bid_repository.BidRepository, orgRepo organization_repository.OrganizationRepository) BidService {
+	return &bidService{
+		bidRepo: bidRepo,
+		orgRepo: orgRepo,
+	}
 }
 
 // CreateBid creates a new bid and its initial version
@@ -207,37 +213,69 @@ func (s *bidService) GetBidsByUserID(ctx context.Context, userID int) ([]*bid_mo
 	return bids, nil
 }
 
-// ApproveBid increments the approval count for the bid
 func (s *bidService) ApproveBid(ctx context.Context, bidID, approverID int) error {
-	entity, err := s.bidRepo.FindByID(ctx, bidID)
+	// Найдем предложение
+	bid, err := s.bidRepo.FindByID(ctx, bidID)
 	if err != nil {
 		return err
 	}
 
-	// Increment the approval count and update the bid status if the quorum is met
-	entity.ApprovalCount++
-	quorum := 3 // You can customize this based on the responsible count logic
-
-	if entity.ApprovalCount >= quorum {
-		entity.Status = "APPROVED"
+	// Проверим, что пользователь является ответственным за организацию
+	isResponsible, err := s.isUserResponsibleForOrganization(ctx, bid.OrganizationID, approverID)
+	if err != nil {
+		return err
+	}
+	if !isResponsible {
+		return errors.New("user is not responsible for the organization")
 	}
 
-	if err := s.bidRepo.Update(ctx, entity); err != nil {
+	// Определим кворум
+	responsibles, err := s.orgRepo.GetResponsibles(ctx, bid.OrganizationID)
+	if err != nil {
+		return err
+	}
+
+	quorum := min(3, len(responsibles))
+	bid.ApprovalCount++
+
+	// Проверим, если достигнут кворум, меняем статус
+	if bid.ApprovalCount >= quorum {
+		bid.Status = "APPROVED"
+		bid.Tender.Status = "CLOSED"
+	} else {
+		shared.Logger.Infof("Approval count: %d, Quorum: %d\n", bid.ApprovalCount, quorum)
+	}
+
+	// Обновим статус предложения
+	if err := s.bidRepo.Update(ctx, bid); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// RejectBid cancels the bid and marks it as rejected
 func (s *bidService) RejectBid(ctx context.Context, bidID, rejecterID int) error {
-	entity, err := s.bidRepo.FindByID(ctx, bidID)
+	//Let's find an offer
+	bid, err := s.bidRepo.FindByID(ctx, bidID)
 	if err != nil {
 		return err
 	}
 
-	entity.Status = "REJECTED"
-	if err := s.bidRepo.Update(ctx, entity); err != nil {
+	//Let's check that the user is responsible for the organization
+	isResponsible, err := s.isUserResponsibleForOrganization(ctx, bid.OrganizationID, rejecterID)
+	if err != nil {
+		return err
+	}
+	if !isResponsible {
+		return errors.New("user is not responsible for the organization")
+	}
+
+	//If there is at least one deviation, the status changes to "REJECTED"
+	bid.Status = "REJECTED"
+	bid.Tender.Status = "CLOSED"
+
+	// Обновим статус предложения
+	if err := s.bidRepo.Update(ctx, bid); err != nil {
 		return err
 	}
 
@@ -290,4 +328,27 @@ func (s *bidService) DeleteBid(ctx context.Context, bidID int) error {
 	}
 
 	return s.bidRepo.Delete(ctx, bidID)
+}
+
+// isUserResponsibleForOrganization checks whether the user is responsible for the organization.
+func (s *bidService) isUserResponsibleForOrganization(ctx context.Context, organizationID int, userID int) (bool, error) {
+	responsibles, err := s.orgRepo.GetResponsibles(ctx, organizationID)
+	if err != nil {
+		return false, err
+	}
+
+	for _, responsible := range responsibles {
+		if responsible.ID == userID {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// min - auxiliary function for determining the minimum value
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

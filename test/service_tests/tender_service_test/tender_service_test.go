@@ -2,6 +2,8 @@ package service_test
 
 import (
 	"avitoTest/data/entities"
+	"avitoTest/data/repositories/tender_repository"
+	"avitoTest/data/repositories/user_repository"
 	"avitoTest/services/tender_service"
 	"avitoTest/services/tender_service/tender_models"
 	"avitoTest/shared/constants"
@@ -13,137 +15,16 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// MockTenderRepository is a mock implementation of TenderRepository.
-type MockTenderRepository struct {
-	mock.Mock
-}
-
-func (m *MockTenderRepository) Create(ctx context.Context, tender *entities.Tender) error {
-	args := m.Called(ctx, tender)
-	return args.Error(0)
-}
-
-func (m *MockTenderRepository) Update(ctx context.Context, tender *entities.Tender) error {
-	args := m.Called(ctx, tender)
-	return args.Error(0)
-}
-
-func (m *MockTenderRepository) FindByID(ctx context.Context, id int) (*entities.Tender, error) {
-	args := m.Called(ctx, id)
-	if tender, ok := args.Get(0).(*entities.Tender); ok {
-		return tender, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockTenderRepository) GetAll(ctx context.Context) ([]*entities.Tender, error) {
-	args := m.Called(ctx)
-	if tenders, ok := args.Get(0).([]*entities.Tender); ok {
-		return tenders, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockTenderRepository) GetAllByServiceType(ctx context.Context, serviceType string) ([]*entities.Tender, error) {
-	args := m.Called(ctx, serviceType)
-	if tenders, ok := args.Get(0).([]*entities.Tender); ok {
-		return tenders, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockTenderRepository) CreateVersion(ctx context.Context, version *entities.TenderVersion) error {
-	args := m.Called(ctx, version)
-	return args.Error(0)
-}
-
-func (m *MockTenderRepository) FindVersionByNumber(ctx context.Context, tenderID int, versionNumber int) (*entities.TenderVersion, error) {
-	args := m.Called(ctx, tenderID, versionNumber)
-	if version, ok := args.Get(0).(*entities.TenderVersion); ok {
-		return version, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockTenderRepository) FindLatestVersion(ctx context.Context, tenderID int) (*entities.TenderVersion, error) {
-	args := m.Called(ctx, tenderID)
-	if version, ok := args.Get(0).(*entities.TenderVersion); ok {
-		return version, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockTenderRepository) FindUserOrganizationResponsibility(ctx context.Context, userID, orgID int) (*entities.OrganizationResponsible, error) {
-	args := m.Called(ctx, userID, orgID)
-	if responsible, ok := args.Get(0).(*entities.OrganizationResponsible); ok {
-		return responsible, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockTenderRepository) GetAllByCreatorID(ctx context.Context, creatorID int) ([]*entities.Tender, error) {
-	args := m.Called(ctx, creatorID)
-	if tenders, ok := args.Get(0).([]*entities.Tender); ok {
-		return tenders, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockTenderRepository) Delete(ctx context.Context, id int) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
-}
-
-// MockUserRepository is a mock implementation of UserRepository.
-type MockUserRepository struct {
-	mock.Mock
-}
-
-func (m *MockUserRepository) FindByID(ctx context.Context, id int) (*entities.User, error) {
-	args := m.Called(ctx, id)
-	if user, ok := args.Get(0).(*entities.User); ok {
-		return user, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-// Добавляем недостающий метод FindByUsername для корректного выполнения тестов
-func (m *MockUserRepository) FindByUsername(ctx context.Context, username string) (*entities.User, error) {
-	args := m.Called(ctx, username)
-	if user, ok := args.Get(0).(*entities.User); ok {
-		return user, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockUserRepository) Create(ctx context.Context, user *entities.User) error {
-	args := m.Called(ctx, user)
-	return args.Error(0)
-}
-
-func (m *MockUserRepository) GetAll(ctx context.Context) ([]entities.User, error) {
-	args := m.Called(ctx)
-	if users, ok := args.Get(0).([]entities.User); ok {
-		return users, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockUserRepository) Update(ctx context.Context, user *entities.User) error {
-	args := m.Called(ctx, user)
-	return args.Error(0)
-}
-
-func (m *MockUserRepository) Delete(ctx context.Context, id int) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
+func setupMocks() (*tender_repository.MockTenderRepository, *user_repository.MockUserRepository, tender_service.TenderService) {
+	mockTenderRepo := new(tender_repository.MockTenderRepository)
+	mockUserRepo := new(user_repository.MockUserRepository)
+	service := tender_service.NewTenderService(mockTenderRepo, mockUserRepo)
+	return mockTenderRepo, mockUserRepo, service
 }
 
 // Test for CreateTender
 func TestCreateTender_Success(t *testing.T) {
-	mockTenderRepo := new(MockTenderRepository)
-	mockUserRepo := new(MockUserRepository)
-	service := tender_service.NewTenderService(mockTenderRepo, mockUserRepo)
+	mockTenderRepo, _, service := setupMocks()
 
 	tenderCreate := tender_models.TenderCreateModel{
 		Name:           "Tender 1",
@@ -193,9 +74,7 @@ func TestCreateTender_Success(t *testing.T) {
 
 // Test for UpdateTender
 func TestUpdateTender_Success(t *testing.T) {
-	mockTenderRepo := new(MockTenderRepository)
-	mockUserRepo := new(MockUserRepository)
-	service := tender_service.NewTenderService(mockTenderRepo, mockUserRepo)
+	mockTenderRepo, _, service := setupMocks()
 
 	tenderUpdate := tender_models.TenderUpdateModel{
 		ID:          1,
@@ -234,9 +113,7 @@ func TestUpdateTender_Success(t *testing.T) {
 
 // Test for GetTendersByUsername
 func TestGetTendersByUsername_Success(t *testing.T) {
-	mockTenderRepo := new(MockTenderRepository)
-	mockUserRepo := new(MockUserRepository)
-	service := tender_service.NewTenderService(mockTenderRepo, mockUserRepo)
+	mockTenderRepo, mockUserRepo, service := setupMocks()
 
 	username := "test_user"
 	expectedUser := &entities.User{ID: 1, Username: username}
@@ -275,9 +152,7 @@ func TestGetTendersByUsername_Success(t *testing.T) {
 
 // Test for DeleteTender
 func TestDeleteTender_Success(t *testing.T) {
-	mockTenderRepo := new(MockTenderRepository)
-	mockUserRepo := new(MockUserRepository)
-	service := tender_service.NewTenderService(mockTenderRepo, mockUserRepo)
+	mockTenderRepo, _, service := setupMocks()
 
 	existingEntity := &entities.Tender{
 		ID:             1,
@@ -298,9 +173,7 @@ func TestDeleteTender_Success(t *testing.T) {
 
 // Test for GetTenderByID
 func TestGetTenderByID_Success(t *testing.T) {
-	mockTenderRepo := new(MockTenderRepository)
-	mockUserRepo := new(MockUserRepository)
-	service := tender_service.NewTenderService(mockTenderRepo, mockUserRepo)
+	mockTenderRepo, _, service := setupMocks()
 
 	existingEntity := &entities.Tender{
 		ID:             1,

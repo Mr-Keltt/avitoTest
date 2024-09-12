@@ -7,4 +7,5 @@ const (
 	BidStatusPublished TenderStatus = "PUBLISHED"
 	BidStatusClosed    TenderStatus = "CANCELED"
 	BidStatusRejected  TenderStatus = "REJECTED"
+	BidStatusApproved  TenderStatus = "APPROVED"
 )

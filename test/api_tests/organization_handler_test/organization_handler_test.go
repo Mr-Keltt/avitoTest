@@ -2,7 +2,6 @@ package api_tests
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -11,6 +10,7 @@ import (
 
 	"avitoTest/api/handlers/organization_handler"
 	"avitoTest/api/handlers/organization_handler/organization_handler_models"
+	"avitoTest/services/organization_service"
 	"avitoTest/services/organization_service/organization_models"
 	"avitoTest/services/user_service/user_models"
 
@@ -19,62 +19,14 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// MockOrganizationService is a mock implementation of the OrganizationService interface
-type MockOrganizationService struct {
-	mock.Mock
-}
-
-func (m *MockOrganizationService) CreateOrganization(ctx context.Context, org organization_models.OrganizationCreateModel) (*organization_models.OrganizationModel, error) {
-	args := m.Called(ctx, org)
-	return args.Get(0).(*organization_models.OrganizationModel), args.Error(1)
-}
-
-func (m *MockOrganizationService) UpdateOrganization(ctx context.Context, org organization_models.OrganizationUpdateModel) (*organization_models.OrganizationModel, error) {
-	args := m.Called(ctx, org)
-	return args.Get(0).(*organization_models.OrganizationModel), args.Error(1)
-}
-
-func (m *MockOrganizationService) GetOrganizations(ctx context.Context) ([]*organization_models.OrganizationModel, error) {
-	args := m.Called(ctx)
-	return args.Get(0).([]*organization_models.OrganizationModel), args.Error(1)
-}
-
-func (m *MockOrganizationService) GetOrganizationByID(ctx context.Context, id int) (*organization_models.OrganizationModel, error) {
-	args := m.Called(ctx, id)
-	return args.Get(0).(*organization_models.OrganizationModel), args.Error(1)
-}
-
-func (m *MockOrganizationService) DeleteOrganization(ctx context.Context, id int) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
-}
-
-func (m *MockOrganizationService) AddResponsible(ctx context.Context, orgID int, userID int) error {
-	args := m.Called(ctx, orgID, userID)
-	return args.Error(0)
-}
-
-func (m *MockOrganizationService) DeleteResponsible(ctx context.Context, orgID int, userID int) error {
-	args := m.Called(ctx, orgID, userID)
-	return args.Error(0)
-}
-
-func (m *MockOrganizationService) GetResponsibles(ctx context.Context, orgID int) ([]*user_models.UserModel, error) {
-	args := m.Called(ctx, orgID)
-	return args.Get(0).([]*user_models.UserModel), args.Error(1)
-}
-
-func (m *MockOrganizationService) GetResponsibleByID(ctx context.Context, orgID int, userID int) (*user_models.UserModel, error) {
-	args := m.Called(ctx, orgID, userID)
-	if user, ok := args.Get(0).(*user_models.UserModel); ok {
-		return user, args.Error(1)
-	}
-	return nil, args.Error(1)
+func setupMocks() (*organization_service.MockOrganizationService, *organization_handler.OrganizationHandler) {
+	service := new(organization_service.MockOrganizationService)
+	handler := organization_handler.NewOrganizationHandler(service)
+	return service, handler
 }
 
 func TestCreateOrganization(t *testing.T) {
-	service := new(MockOrganizationService)
-	handler := organization_handler.NewOrganizationHandler(service)
+	service, handler := setupMocks()
 
 	reqBody := &organization_handler_models.CreateOrganizationRequest{
 		Name:        "Test Organization",
@@ -113,8 +65,7 @@ func TestCreateOrganization(t *testing.T) {
 }
 
 func TestUpdateOrganization(t *testing.T) {
-	service := new(MockOrganizationService)
-	handler := organization_handler.NewOrganizationHandler(service)
+	service, handler := setupMocks()
 
 	reqBody := &organization_handler_models.UpdateOrganizationRequest{
 		Name:        "Updated Organization",
@@ -158,8 +109,7 @@ func TestUpdateOrganization(t *testing.T) {
 }
 
 func TestGetOrganizationByID(t *testing.T) {
-	service := new(MockOrganizationService)
-	handler := organization_handler.NewOrganizationHandler(service)
+	service, handler := setupMocks()
 
 	req := httptest.NewRequest("GET", "/api/organizations/1", nil)
 	rr := httptest.NewRecorder()
@@ -196,8 +146,7 @@ func TestGetOrganizationByID(t *testing.T) {
 }
 
 func TestDeleteOrganization(t *testing.T) {
-	service := new(MockOrganizationService)
-	handler := organization_handler.NewOrganizationHandler(service)
+	service, handler := setupMocks()
 
 	req := httptest.NewRequest("DELETE", "/api/organizations/1", nil)
 	rr := httptest.NewRecorder()
@@ -217,8 +166,7 @@ func TestDeleteOrganization(t *testing.T) {
 }
 
 func TestAddResponsible(t *testing.T) {
-	service := new(MockOrganizationService)
-	handler := organization_handler.NewOrganizationHandler(service)
+	service, handler := setupMocks()
 
 	req := httptest.NewRequest("POST", "/api/organizations/1/responsibles/1", nil)
 	rr := httptest.NewRecorder()
@@ -238,8 +186,7 @@ func TestAddResponsible(t *testing.T) {
 }
 
 func TestDeleteResponsible(t *testing.T) {
-	service := new(MockOrganizationService)
-	handler := organization_handler.NewOrganizationHandler(service)
+	service, handler := setupMocks()
 
 	req := httptest.NewRequest("DELETE", "/api/organizations/1/responsibles/1", nil)
 	rr := httptest.NewRecorder()
@@ -259,8 +206,7 @@ func TestDeleteResponsible(t *testing.T) {
 }
 
 func TestGetResponsibles(t *testing.T) {
-	service := new(MockOrganizationService)
-	handler := organization_handler.NewOrganizationHandler(service)
+	service, handler := setupMocks()
 
 	req := httptest.NewRequest("GET", "/api/organizations/1/responsibles", nil)
 	rr := httptest.NewRecorder()
@@ -296,8 +242,7 @@ func TestGetResponsibles(t *testing.T) {
 }
 
 func TestGetResponsibleByID(t *testing.T) {
-	service := new(MockOrganizationService)
-	handler := organization_handler.NewOrganizationHandler(service)
+	service, handler := setupMocks()
 
 	// Set up mock response
 	expectedUser := &user_models.UserModel{

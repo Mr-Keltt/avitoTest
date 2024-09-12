@@ -8,6 +8,7 @@ import (
 
 	"avitoTest/data/entities"
 	"avitoTest/data/repositories/organization_repository"
+	"avitoTest/data/repositories/user_repository"
 	"avitoTest/services/organization_service"
 	"avitoTest/services/organization_service/organization_models"
 	"avitoTest/shared/constants"
@@ -16,117 +17,9 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// MockOrganizationRepository is a mock implementation of OrganizationRepository.
-type MockOrganizationRepository struct {
-	mock.Mock
-}
-
-func (m *MockOrganizationRepository) Create(ctx context.Context, org *entities.Organization) error {
-	args := m.Called(ctx, org)
-	return args.Error(0)
-}
-
-func (m *MockOrganizationRepository) GetAll(ctx context.Context) ([]entities.Organization, error) {
-	args := m.Called(ctx)
-	if orgs, ok := args.Get(0).([]entities.Organization); ok {
-		return orgs, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockOrganizationRepository) FindByID(ctx context.Context, id int) (*entities.Organization, error) {
-	args := m.Called(ctx, id)
-	if org, ok := args.Get(0).(*entities.Organization); ok {
-		return org, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockOrganizationRepository) Update(ctx context.Context, org *entities.Organization) error {
-	args := m.Called(ctx, org)
-	return args.Error(0)
-}
-
-func (m *MockOrganizationRepository) Delete(ctx context.Context, id int) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
-}
-
-// New methods for responsible management
-func (m *MockOrganizationRepository) AddResponsible(ctx context.Context, orgResponsible *entities.OrganizationResponsible) error {
-	args := m.Called(ctx, orgResponsible)
-	return args.Error(0)
-}
-
-func (m *MockOrganizationRepository) DeleteResponsible(ctx context.Context, orgID int, userID int) error {
-	args := m.Called(ctx, orgID, userID)
-	return args.Error(0)
-}
-
-func (m *MockOrganizationRepository) GetResponsibles(ctx context.Context, orgID int) ([]entities.User, error) {
-	args := m.Called(ctx, orgID)
-	if responsibles, ok := args.Get(0).([]entities.User); ok {
-		return responsibles, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockOrganizationRepository) GetResponsibleByID(ctx context.Context, orgID int, userID int) (*entities.User, error) {
-	args := m.Called(ctx, orgID, userID)
-	if user, ok := args.Get(0).(*entities.User); ok {
-		return user, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-// MockUserRepository is a mock implementation of UserRepository.
-type MockUserRepository struct {
-	mock.Mock
-}
-
-func (m *MockUserRepository) FindByID(ctx context.Context, id int) (*entities.User, error) {
-	args := m.Called(ctx, id)
-	if user, ok := args.Get(0).(*entities.User); ok {
-		return user, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-// Добавляем недостающий метод FindByUsername для корректного выполнения тестов
-func (m *MockUserRepository) FindByUsername(ctx context.Context, username string) (*entities.User, error) {
-	args := m.Called(ctx, username)
-	if user, ok := args.Get(0).(*entities.User); ok {
-		return user, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockUserRepository) Create(ctx context.Context, user *entities.User) error {
-	args := m.Called(ctx, user)
-	return args.Error(0)
-}
-
-func (m *MockUserRepository) GetAll(ctx context.Context) ([]entities.User, error) {
-	args := m.Called(ctx)
-	if users, ok := args.Get(0).([]entities.User); ok {
-		return users, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockUserRepository) Update(ctx context.Context, user *entities.User) error {
-	args := m.Called(ctx, user)
-	return args.Error(0)
-}
-
-func (m *MockUserRepository) Delete(ctx context.Context, id int) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
-}
-
-func setupMocks() (*MockOrganizationRepository, *MockUserRepository, organization_service.OrganizationService) {
-	mockOrgRepo := new(MockOrganizationRepository)
-	mockUserRepo := new(MockUserRepository)
+func setupMocks() (*organization_repository.MockOrganizationRepository, *user_repository.MockUserRepository, organization_service.OrganizationService) {
+	mockOrgRepo := new(organization_repository.MockOrganizationRepository)
+	mockUserRepo := new(user_repository.MockUserRepository)
 	service := organization_service.NewOrganizationService(mockOrgRepo, mockUserRepo)
 	return mockOrgRepo, mockUserRepo, service
 }
