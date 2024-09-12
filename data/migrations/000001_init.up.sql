@@ -3,33 +3,34 @@ CREATE TABLE users (
     username VARCHAR(50) NOT NULL UNIQUE,
     first_name VARCHAR(50),
     last_name VARCHAR(50),
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE organizations (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     description TEXT,
-    type VARCHAR(10) NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    type VARCHAR(3) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE organization_responsibles (
     id SERIAL PRIMARY KEY,
     organization_id INT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    UNIQUE(organization_id, user_id)
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE tenders (
     id SERIAL PRIMARY KEY,
     organization_id INT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     creator_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    status VARCHAR(50) NOT NULL,
+    service_type VARCHAR(100),
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE tender_versions (
@@ -37,18 +38,17 @@ CREATE TABLE tender_versions (
     tender_id INT NOT NULL REFERENCES tenders(id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
     description VARCHAR(255),
-    service_type VARCHAR(100),
     version INT NOT NULL,
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE bids (
     id SERIAL PRIMARY KEY,
     tender_id INT NOT NULL REFERENCES tenders(id) ON DELETE CASCADE,
-    organization_id INT NOT NULL REFERENCES organizations(id),
+    organization_id INT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     creator_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    approval_count INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    approval_count INT DEFAULT 0 NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE bid_versions (
@@ -58,12 +58,12 @@ CREATE TABLE bid_versions (
     description VARCHAR(255),
     status VARCHAR(50),
     version INT NOT NULL,
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE comments (
     id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id INT NOT NULL REFERENCES users(id),
     organization_id INT NOT NULL REFERENCES organizations(id),
     company_name VARCHAR(100) NOT NULL,
     tender_name VARCHAR(100) NOT NULL,
@@ -71,6 +71,6 @@ CREATE TABLE comments (
     bid_description VARCHAR(255),
     service_type VARCHAR(100),
     content VARCHAR(500) NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );

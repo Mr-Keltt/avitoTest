@@ -10,6 +10,7 @@ import (
 	"avitoTest/data/repositories/user_repository"
 	"avitoTest/services/organization_service/organization_models"
 	"avitoTest/services/user_service/user_models"
+	"avitoTest/shared/constants"
 
 	"github.com/go-playground/validator/v10"
 )
@@ -51,7 +52,7 @@ func (s *organizationService) CreateOrganization(ctx context.Context, org organi
 	entity := &entities.Organization{
 		Name:        org.Name,
 		Description: org.Description,
-		Type:        entities.OrganizationType(org.Type),
+		Type:        constants.OrganizationType(org.Type),
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
@@ -83,7 +84,7 @@ func (s *organizationService) UpdateOrganization(ctx context.Context, org organi
 
 	entity.Name = org.Name
 	entity.Description = org.Description
-	entity.Type = entities.OrganizationType(org.Type)
+	entity.Type = constants.OrganizationType(org.Type)
 	entity.UpdatedAt = time.Now()
 
 	if err := s.orgRepo.Update(ctx, entity); err != nil {

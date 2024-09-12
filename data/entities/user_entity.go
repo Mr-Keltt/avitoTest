@@ -15,4 +15,5 @@ type User struct {
 	Organizations []Organization `gorm:"many2many:organization_responsibles;"`
 	Tenders       []Tender       `gorm:"foreignKey:CreatorID;constraint:OnDelete:CASCADE;"`
 	Bids          []Bid          `gorm:"foreignKey:CreatorID;constraint:OnDelete:CASCADE;"`
+	Comments      []Comment      `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE;"`
 }

@@ -6,8 +6,10 @@ import (
 	"avitoTest/api"
 	"avitoTest/data/context"
 	"avitoTest/data/repositories/organization_repository"
+	"avitoTest/data/repositories/tender_repository"
 	"avitoTest/data/repositories/user_repository"
 	"avitoTest/services/organization_service"
+	"avitoTest/services/tender_service"
 	"avitoTest/services/user_service"
 	"avitoTest/shared"
 	"net/http"
@@ -22,10 +24,11 @@ func main() {
 	db := connectToDatabase(conf)
 	defer closeDatabaseConnection(db)
 
-	orgService, userService := initializeServices(db)
+	orgService, userService, tenderService := initializeServices(db)
 	router := setupRouter(
 		orgService,
-		userService)
+		userService,
+		tenderService)
 
 	startServer(conf.ServerAddress, router)
 }
@@ -69,25 +72,29 @@ func closeDatabaseConnection(db *gorm.DB) {
 // initializeServices initializes the necessary repositories and services.
 func initializeServices(db *gorm.DB) (
 	organization_service.OrganizationService,
-	user_service.UserService) {
+	user_service.UserService,
+	tender_service.TenderService) {
 	shared.Logger.Info("Initializing repositories and services")
 
 	orgRepo := organization_repository.NewOrganizationRepository(db)
 	userRepo := user_repository.NewUserRepository(db)
+	tenderRepo := tender_repository.NewTenderRepository(db)
 
 	orgService := organization_service.NewOrganizationService(orgRepo, userRepo)
 	userService := user_service.NewUserService(userRepo)
+	tenderService := tender_service.NewTenderService(tenderRepo, userRepo)
 
-	return orgService, userService
+	return orgService, userService, tenderService
 }
 
 // setupRouter sets up the HTTP router with the necessary routes.
 func setupRouter(
 	orgService organization_service.OrganizationService,
-	userService user_service.UserService) *mux.Router {
+	userService user_service.UserService,
+	tenderService tender_service.TenderService) *mux.Router {
 	shared.Logger.Info("Initializing routes")
 	router := mux.NewRouter()
-	api.InitRoutes(router, orgService, userService)
+	api.InitRoutes(router, orgService, userService, tenderService)
 	return router
 }
 

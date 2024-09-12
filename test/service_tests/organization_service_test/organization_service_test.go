@@ -1,4 +1,4 @@
-package organization_service_test
+package service_test
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"avitoTest/data/repositories/organization_repository"
 	"avitoTest/services/organization_service"
 	"avitoTest/services/organization_service/organization_models"
+	"avitoTest/shared/constants"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -91,6 +92,15 @@ func (m *MockUserRepository) FindByID(ctx context.Context, id int) (*entities.Us
 	return nil, args.Error(1)
 }
 
+// Добавляем недостающий метод FindByUsername для корректного выполнения тестов
+func (m *MockUserRepository) FindByUsername(ctx context.Context, username string) (*entities.User, error) {
+	args := m.Called(ctx, username)
+	if user, ok := args.Get(0).(*entities.User); ok {
+		return user, args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
 func (m *MockUserRepository) Create(ctx context.Context, user *entities.User) error {
 	args := m.Called(ctx, user)
 	return args.Error(0)
@@ -134,7 +144,7 @@ func TestCreateOrganization_Success(t *testing.T) {
 		ID:          1,
 		Name:        orgCreate.Name,
 		Description: orgCreate.Description,
-		Type:        entities.OrganizationType(orgCreate.Type),
+		Type:        constants.OrganizationType(orgCreate.Type),
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
@@ -177,7 +187,7 @@ func TestGetOrganizations_Success(t *testing.T) {
 			ID:          1,
 			Name:        "Org 1",
 			Description: "Description 1",
-			Type:        entities.OrganizationType("LLC"),
+			Type:        constants.OrganizationType("LLC"),
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
 		},
@@ -185,7 +195,7 @@ func TestGetOrganizations_Success(t *testing.T) {
 			ID:          2,
 			Name:        "Org 2",
 			Description: "Description 2",
-			Type:        entities.OrganizationType("Corporation"),
+			Type:        constants.OrganizationType("Corporation"),
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
 		},
@@ -215,7 +225,6 @@ func TestGetOrganizations_Failure(t *testing.T) {
 }
 
 // Tests for AddResponsible, DeleteResponsible, and GetResponsibles methods
-
 func TestAddResponsible_Success(t *testing.T) {
 	mockOrgRepo, mockUserRepo, service := setupMocks()
 

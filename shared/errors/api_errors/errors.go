@@ -1,4 +1,4 @@
-package shared
+package api_errors
 
 import (
 	"net/http"
