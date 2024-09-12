@@ -14,6 +14,7 @@ type TenderRepository interface {
 	FindByID(ctx context.Context, id int) (*entities.Tender, error)
 	GetAll(ctx context.Context) ([]*entities.Tender, error)
 	GetAllByServiceType(ctx context.Context, serviceType string) ([]*entities.Tender, error)
+	GetAllByCreatorID(ctx context.Context, creatorID int) ([]*entities.Tender, error)
 
 	// Tender Version Management
 	CreateVersion(ctx context.Context, version *entities.TenderVersion) error
@@ -24,4 +25,6 @@ type TenderRepository interface {
 
 	// User Responsibility Check
 	FindUserOrganizationResponsibility(ctx context.Context, userID, orgID int) (*entities.OrganizationResponsible, error)
+
+	Delete(ctx context.Context, id int) error
 }

@@ -60,6 +60,18 @@ func (r *tenderRepositoryGorm) GetAllByServiceType(ctx context.Context, serviceT
 	return tenders, nil
 }
 
+// GetAllByCreatorID retrieves all tenders created by a specific user ID.
+func (r *tenderRepositoryGorm) GetAllByCreatorID(ctx context.Context, creatorID int) ([]*entities.Tender, error) {
+	var tenders []*entities.Tender
+	if err := r.db.WithContext(ctx).
+		Where("creator_id = ?", creatorID).
+		Preload("Versions").
+		Find(&tenders).Error; err != nil {
+		return nil, err
+	}
+	return tenders, nil
+}
+
 // CreateVersion adds a new version of a tender to the database.
 func (r *tenderRepositoryGorm) CreateVersion(ctx context.Context, version *entities.TenderVersion) error {
 	return r.db.WithContext(ctx).Create(version).Error
@@ -106,4 +118,9 @@ func (r *tenderRepositoryGorm) FindUserOrganizationResponsibility(ctx context.Co
 		return nil, err
 	}
 	return &responsible, nil
+}
+
+// Delete removes a tender by its ID from the database.
+func (r *tenderRepositoryGorm) Delete(ctx context.Context, id int) error {
+	return r.db.WithContext(ctx).Delete(&entities.Tender{}, id).Error
 }
