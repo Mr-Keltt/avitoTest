@@ -4,6 +4,7 @@ import (
 	"avitoTest/data/entities"
 	"avitoTest/data/repositories/bid_repository"
 	"avitoTest/data/repositories/organization_repository"
+	"avitoTest/data/repositories/user_repository"
 	"avitoTest/services/bid_service/bid_models"
 	"avitoTest/shared"
 	"context"
@@ -17,6 +18,7 @@ type BidService interface {
 	GetBidByID(ctx context.Context, bidID int) (*bid_models.BidModel, error)
 	GetBidsByTenderID(ctx context.Context, tenderID int) ([]*bid_models.BidModel, error)
 	GetBidsByUserID(ctx context.Context, userID int) ([]*bid_models.BidModel, error)
+	GetBidsByUsername(ctx context.Context, username string) ([]*bid_models.BidModel, error)
 	ApproveBid(ctx context.Context, bidID, approverID int) error
 	RejectBid(ctx context.Context, bidID, rejecterID int) error
 	RollbackBidVersion(ctx context.Context, bidID int, version int) (*bid_models.BidModel, error)
@@ -24,14 +26,16 @@ type BidService interface {
 }
 
 type bidService struct {
-	bidRepo bid_repository.BidRepository
-	orgRepo organization_repository.OrganizationRepository
+	bidRepo  bid_repository.BidRepository
+	orgRepo  organization_repository.OrganizationRepository
+	userRepo user_repository.UserRepository
 }
 
-func NewBidService(bidRepo bid_repository.BidRepository, orgRepo organization_repository.OrganizationRepository) BidService {
+func NewBidService(bidRepo bid_repository.BidRepository, orgRepo organization_repository.OrganizationRepository, userRepo user_repository.UserRepository) BidService {
 	return &bidService{
-		bidRepo: bidRepo,
-		orgRepo: orgRepo,
+		bidRepo:  bidRepo,
+		orgRepo:  orgRepo,
+		userRepo: userRepo,
 	}
 }
 
@@ -213,14 +217,50 @@ func (s *bidService) GetBidsByUserID(ctx context.Context, userID int) ([]*bid_mo
 	return bids, nil
 }
 
+func (s *bidService) GetBidsByUsername(ctx context.Context, username string) ([]*bid_models.BidModel, error) {
+	user, err := s.userRepo.FindByUsername(ctx, username)
+	if err != nil {
+		if errors.Is(err, user_repository.ErrUserNotFound) {
+			return nil, errors.New("user not found")
+		}
+		return nil, err
+	}
+
+	bids, err := s.bidRepo.FindByCreatorID(ctx, user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	var bidModels []*bid_models.BidModel
+	for _, bid := range bids {
+		version, err := s.bidRepo.FindLatestVersion(ctx, bid.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		bidModel := &bid_models.BidModel{
+			ID:             bid.ID,
+			TenderID:       bid.TenderID,
+			OrganizationID: bid.OrganizationID,
+			CreatorID:      bid.CreatorID,
+			Status:         bid.Status,
+			CreatedAt:      bid.CreatedAt,
+			Name:           version.Name,
+			Description:    version.Description,
+		}
+
+		bidModels = append(bidModels, bidModel)
+	}
+
+	return bidModels, nil
+}
+
 func (s *bidService) ApproveBid(ctx context.Context, bidID, approverID int) error {
-	// Найдем предложение
 	bid, err := s.bidRepo.FindByID(ctx, bidID)
 	if err != nil {
 		return err
 	}
 
-	// Проверим, что пользователь является ответственным за организацию
 	isResponsible, err := s.isUserResponsibleForOrganization(ctx, bid.OrganizationID, approverID)
 	if err != nil {
 		return err
@@ -229,7 +269,6 @@ func (s *bidService) ApproveBid(ctx context.Context, bidID, approverID int) erro
 		return errors.New("user is not responsible for the organization")
 	}
 
-	// Определим кворум
 	responsibles, err := s.orgRepo.GetResponsibles(ctx, bid.OrganizationID)
 	if err != nil {
 		return err
@@ -238,7 +277,6 @@ func (s *bidService) ApproveBid(ctx context.Context, bidID, approverID int) erro
 	quorum := min(3, len(responsibles))
 	bid.ApprovalCount++
 
-	// Проверим, если достигнут кворум, меняем статус
 	if bid.ApprovalCount >= quorum {
 		bid.Status = "APPROVED"
 		bid.Tender.Status = "CLOSED"
@@ -246,7 +284,6 @@ func (s *bidService) ApproveBid(ctx context.Context, bidID, approverID int) erro
 		shared.Logger.Infof("Approval count: %d, Quorum: %d\n", bid.ApprovalCount, quorum)
 	}
 
-	// Обновим статус предложения
 	if err := s.bidRepo.Update(ctx, bid); err != nil {
 		return err
 	}

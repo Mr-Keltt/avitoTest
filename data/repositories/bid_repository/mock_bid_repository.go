@@ -69,6 +69,15 @@ func (m *MockBidRepository) FindVersionByNumber(ctx context.Context, bidID int, 
 	return nil, args.Error(1)
 }
 
+// FindByUsername mocks finding bids by the username of the creator.
+func (m *MockBidRepository) FindByUsername(ctx context.Context, username string) ([]*entities.Bid, error) {
+	args := m.Called(ctx, username)
+	if bids, ok := args.Get(0).([]*entities.Bid); ok {
+		return bids, args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
 // CreateVersion mocks the creation of a new BidVersion.
 func (m *MockBidRepository) CreateVersion(ctx context.Context, version *entities.BidVersion) error {
 	args := m.Called(ctx, version)

@@ -1,15 +1,14 @@
-package handlers
-
 package bid_handler
 
 import (
+	"avitoTest/api/handlers/bid_handler/bid_handler_models"
+	"avitoTest/services/bid_service"
+	"avitoTest/services/bid_service/bid_models"
 	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"your_project/services/bid_service"
-	"your_project/api/handlers/bid_handler/models"
 )
 
 type BidHandler struct {
@@ -22,13 +21,13 @@ func NewBidHandler(service bid_service.BidService) *BidHandler {
 
 // CreateBid creates a new bid
 func (h *BidHandler) CreateBid(w http.ResponseWriter, r *http.Request) {
-	var req models.CreateBidRequest
+	var req bid_handler_models.CreateBidRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	bidCreateModel := bid_service.BidCreateModel{
+	bidCreateModel := bid_models.BidCreateModel{
 		Name:           req.Name,
 		Description:    req.Description,
 		TenderID:       req.TenderID,
@@ -43,7 +42,7 @@ func (h *BidHandler) CreateBid(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := models.BidResponse{
+	resp := bid_handler_models.BidResponse{
 		ID:             bid.ID,
 		Name:           bid.Name,
 		Description:    bid.Description,
@@ -70,9 +69,9 @@ func (h *BidHandler) GetMyBids(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var resp []models.BidResponse
+	var resp []bid_handler_models.BidResponse
 	for _, bid := range bids {
-		resp = append(resp, models.BidResponse{
+		resp = append(resp, bid_handler_models.BidResponse{
 			ID:             bid.ID,
 			Name:           bid.Name,
 			Description:    bid.Description,
@@ -105,9 +104,9 @@ func (h *BidHandler) GetBidsByTenderID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var resp []models.BidResponse
+	var resp []bid_handler_models.BidResponse
 	for _, bid := range bids {
-		resp = append(resp, models.BidResponse{
+		resp = append(resp, bid_handler_models.BidResponse{
 			ID:             bid.ID,
 			Name:           bid.Name,
 			Description:    bid.Description,
@@ -134,13 +133,13 @@ func (h *BidHandler) UpdateBid(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req models.UpdateBidRequest
+	var req bid_handler_models.UpdateBidRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	bidUpdateModel := bid_service.BidUpdateModel{
+	bidUpdateModel := bid_models.BidUpdateModel{
 		ID:          bidID,
 		Name:        req.Name,
 		Description: req.Description,
@@ -152,7 +151,7 @@ func (h *BidHandler) UpdateBid(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := models.BidResponse{
+	resp := bid_handler_models.BidResponse{
 		ID:             bid.ID,
 		Name:           bid.Name,
 		Description:    bid.Description,
@@ -190,7 +189,7 @@ func (h *BidHandler) RollbackBidVersion(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	resp := models.BidResponse{
+	resp := bid_handler_models.BidResponse{
 		ID:             bid.ID,
 		Name:           bid.Name,
 		Description:    bid.Description,
