@@ -68,7 +68,7 @@ func (h *OrganizationHandler) CreateOrganization(w http.ResponseWriter, r *http.
 
 func (h *OrganizationHandler) UpdateOrganization(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	idParam := vars["id"]
+	idParam := vars["org_id"]
 	shared.Logger.Infof("UpdateOrganization: Handling update for organization ID: %s", idParam)
 
 	id, err := strconv.Atoi(idParam)
@@ -146,7 +146,7 @@ func (h *OrganizationHandler) GetOrganizations(w http.ResponseWriter, r *http.Re
 func (h *OrganizationHandler) GetOrganizationByID(w http.ResponseWriter, r *http.Request) {
 	shared.Logger.Infof("GetOrganizationByID: Received request from %s", r.RemoteAddr)
 	vars := mux.Vars(r)
-	idParam := vars["id"]
+	idParam := vars["org_id"]
 
 	// Log the incoming ID
 	shared.Logger.Infof("GetOrganizationByID: Fetching organization with ID: %s", idParam)
@@ -184,7 +184,7 @@ func (h *OrganizationHandler) GetOrganizationByID(w http.ResponseWriter, r *http
 func (h *OrganizationHandler) DeleteOrganization(w http.ResponseWriter, r *http.Request) {
 	shared.Logger.Infof("DeleteOrganization: Received request from %s", r.RemoteAddr)
 	vars := mux.Vars(r)
-	idParam := vars["id"]
+	idParam := vars["org_id"]
 
 	// Log the incoming ID
 	shared.Logger.Infof("DeleteOrganization: Deleting organization with ID: %s", idParam)

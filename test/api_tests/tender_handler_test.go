@@ -62,6 +62,16 @@ func (m *MockTenderService) GetAllTenders(ctx context.Context, serviceTypeFilter
 	return args.Get(0).([]*tender_models.TenderModel), args.Error(1)
 }
 
+func (m *MockTenderService) DeleteTender(ctx context.Context, tenderID int) error {
+	args := m.Called(ctx, tenderID)
+	return args.Error(0)
+}
+
+func (m *MockTenderService) GetTendersByUsername(ctx context.Context, username string) ([]*tender_models.TenderModel, error) {
+	args := m.Called(ctx, username)
+	return args.Get(0).([]*tender_models.TenderModel), args.Error(1)
+}
+
 func TestCreateTender(t *testing.T) {
 	service := new(MockTenderService)
 	userService := new(MockUserService)
@@ -288,6 +298,80 @@ func TestRollbackTenderVersion(t *testing.T) {
 	assert.Equal(t, expectedResponse.ID, response.ID)
 	assert.Equal(t, expectedResponse.Name, response.Name)
 	assert.Equal(t, expectedResponse.Description, response.Description)
+
+	tender_service.AssertExpectations(t)
+}
+
+func TestGetTendersByUsername(t *testing.T) {
+	tender_service := new(MockTenderService)
+	user_service := new(MockUserService)
+	handler := tender_handler.NewTenderHandler(tender_service, user_service)
+
+	req := httptest.NewRequest("GET", "/api/tenders/username/testuser", nil)
+	rr := httptest.NewRecorder()
+
+	expectedTenders := []*tender_models.TenderModel{
+		{
+			ID:             1,
+			Name:           "Tender 1",
+			Description:    "Description 1",
+			ServiceType:    "Construction",
+			Status:         constants.TenderStatusCreated,
+			OrganizationID: 1,
+			CreatedAt:      time.Now(),
+			Version:        1,
+		},
+		{
+			ID:             2,
+			Name:           "Tender 2",
+			Description:    "Description 2",
+			ServiceType:    "Consulting",
+			Status:         constants.TenderStatusPublished,
+			OrganizationID: 2,
+			CreatedAt:      time.Now(),
+			Version:        1,
+		},
+	}
+
+	tender_service.On("GetTendersByUsername", mock.Anything, "testuser").Return(expectedTenders, nil)
+
+	vars := map[string]string{
+		"username": "testuser",
+	}
+	req = mux.SetURLVars(req, vars)
+
+	handler.GetTendersByUsername(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	var response []tender_handler_models.TenderResponse
+	json.Unmarshal(rr.Body.Bytes(), &response)
+
+	assert.Len(t, response, 2)
+	assert.Equal(t, expectedTenders[0].ID, response[0].ID)
+	assert.Equal(t, expectedTenders[1].ID, response[1].ID)
+
+	tender_service.AssertExpectations(t)
+}
+
+func TestDeleteTender(t *testing.T) {
+	tender_service := new(MockTenderService)
+	user_service := new(MockUserService)
+	handler := tender_handler.NewTenderHandler(tender_service, user_service)
+
+	req := httptest.NewRequest("DELETE", "/api/tenders/1", nil)
+	rr := httptest.NewRecorder()
+
+	tender_service.On("DeleteTender", mock.Anything, 1).Return(nil)
+
+	vars := map[string]string{
+		"tenderId": "1",
+	}
+	req = mux.SetURLVars(req, vars)
+
+	handler.DeleteTender(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
 
 	tender_service.AssertExpectations(t)
 }

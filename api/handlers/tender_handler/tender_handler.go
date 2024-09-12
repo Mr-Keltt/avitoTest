@@ -6,7 +6,9 @@ import (
 	"avitoTest/services/tender_service/tender_models"
 	"avitoTest/services/user_service"
 	"avitoTest/shared/constants"
+	"avitoTest/shared/errors/tendert_erorrs"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -140,6 +142,39 @@ func (h *TenderHandler) GetTenderByID(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
+// GetTendersByUsername handles fetching tenders created by a specific user
+func (h *TenderHandler) GetTendersByUsername(w http.ResponseWriter, r *http.Request) {
+	username := mux.Vars(r)["username"]
+
+	tenders, err := h.tender_service.GetTendersByUsername(r.Context(), username)
+	if err != nil {
+		if err.Error() == "user not found" {
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var resp []tender_handler_models.TenderResponse
+	for _, tender := range tenders {
+		resp = append(resp, tender_handler_models.TenderResponse{
+			ID:             tender.ID,
+			Name:           tender.Name,
+			Description:    tender.Description,
+			ServiceType:    tender.ServiceType,
+			Status:         string(tender.Status),
+			OrganizationID: tender.OrganizationID,
+			CreatedAt:      tender.CreatedAt,
+			Version:        tender.Version,
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
+}
+
 // UpdateTender handles updating an existing tender
 func (h *TenderHandler) UpdateTender(w http.ResponseWriter, r *http.Request) {
 	idStr := mux.Vars(r)["tenderId"]
@@ -253,4 +288,25 @@ func (h *TenderHandler) RollbackTenderVersion(w http.ResponseWriter, r *http.Req
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(resp)
+}
+
+// DeleteTender handles the deletion of a tender by its ID
+func (h *TenderHandler) DeleteTender(w http.ResponseWriter, r *http.Request) {
+	idStr := mux.Vars(r)["tenderId"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid tender ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.tender_service.DeleteTender(r.Context(), id); err != nil {
+		if errors.Is(err, tendert_erorrs.ErrTenderNotFound) {
+			http.Error(w, "Tender not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }

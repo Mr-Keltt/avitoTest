@@ -82,7 +82,7 @@ func initializeServices(db *gorm.DB) (
 
 	orgService := organization_service.NewOrganizationService(orgRepo, userRepo)
 	userService := user_service.NewUserService(userRepo)
-	tenderService := tender_service.NewTenderService(tenderRepo)
+	tenderService := tender_service.NewTenderService(tenderRepo, userRepo)
 
 	return orgService, userService, tenderService
 }

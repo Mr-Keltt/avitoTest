@@ -64,8 +64,10 @@ func initTenderRoutes(router *mux.Router, tenderService tender_service.TenderSer
 	router.HandleFunc("/api/tenders/new", tenderHandler.CreateTender).Methods("POST")
 	router.HandleFunc("/api/tenders/", tenderHandler.GetTenders).Methods("GET")
 	router.HandleFunc("/api/tenders/{tenderId}", tenderHandler.GetTenderByID).Methods("GET")
+	router.HandleFunc("/api/tenders/my/{username}", tenderHandler.GetTendersByUsername).Methods("GET")
 	router.HandleFunc("/api/tenders/{tenderId}/edit", tenderHandler.UpdateTender).Methods("PATCH")
 	router.HandleFunc("/api/tenders/{tenderId}/publish", tenderHandler.PublishTender).Methods("POST")
 	router.HandleFunc("/api/tenders/{tenderId}/close", tenderHandler.CloseTender).Methods("POST")
 	router.HandleFunc("/api/tenders/{tenderId}/rollback/{version}", tenderHandler.RollbackTenderVersion).Methods("PUT")
+	router.HandleFunc("/api/tenders/{tenderId}/delete", tenderHandler.DeleteTender).Methods("DELETE")
 }
