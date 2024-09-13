@@ -1,7 +1,7 @@
 package comment_models
 
-// CommentCreateModel represents the data needed to create a comment
-type CommentCreateModel struct {
+type CommentResponseModel struct {
+	ID                int    `json:"id"`
 	UserID            int    `json:"user_id"`
 	OrganizationID    int    `json:"organization_id"`
 	CompanyName       string `json:"company_name"`
@@ -10,4 +10,5 @@ type CommentCreateModel struct {
 	BidDescription    string `json:"bid_description"`
 	ServiceType       string `json:"service_type"`
 	Content           string `json:"content"`
+	CreatedAt         string `json:"created_at"`
 }

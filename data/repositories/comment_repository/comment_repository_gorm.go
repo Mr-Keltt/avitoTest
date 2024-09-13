@@ -19,19 +19,19 @@ func (r *commentRepositoryGorm) Create(ctx context.Context, comment *entities.Co
 	return r.db.WithContext(ctx).Create(comment).Error
 }
 
-func (r *commentRepositoryGorm) FindByUsername(ctx context.Context, username string) ([]*entities.Comment, error) {
+func (r *commentRepositoryGorm) FindByFilters(ctx context.Context, authorUsername string, organizationID int) ([]*entities.Comment, error) {
 	var comments []*entities.Comment
-	if err := r.db.WithContext(ctx).Where("user_id = (SELECT id FROM users WHERE username = ?)", username).Find(&comments).Error; err != nil {
-		return nil, err
-	}
-	return comments, nil
-}
 
-func (r *commentRepositoryGorm) FindByOrganizationID(ctx context.Context, organizationID int) ([]*entities.Comment, error) {
-	var comments []*entities.Comment
-	if err := r.db.WithContext(ctx).Where("organization_id = ?", organizationID).Find(&comments).Error; err != nil {
+	query := r.db.WithContext(ctx).Where("user_id = (SELECT id FROM users WHERE username = ?)", authorUsername)
+
+	if organizationID > 0 {
+		query = query.Where("organization_id = ?", organizationID)
+	}
+
+	if err := query.Find(&comments).Error; err != nil {
 		return nil, err
 	}
+
 	return comments, nil
 }
 

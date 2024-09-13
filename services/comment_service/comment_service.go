@@ -11,8 +11,7 @@ import (
 
 type CommentService interface {
 	CreateComment(ctx context.Context, model comment_models.CommentCreateModel) (*comment_models.CommentModel, error)
-	GetCommentsByUsername(ctx context.Context, username string) ([]*comment_models.CommentModel, error)
-	GetCommentsByOrganizationID(ctx context.Context, organizationID int) ([]*comment_models.CommentModel, error)
+	GetCommentsByFilters(ctx context.Context, authorUsername string, organizationID int) ([]*comment_models.CommentModel, error)
 	DeleteComment(ctx context.Context, id int) error
 }
 
@@ -21,18 +20,13 @@ type commentService struct {
 }
 
 func NewCommentService(commentRepo comment_repository.CommentRepository) CommentService {
-	return &commentService{
-		commentRepo: commentRepo,
-	}
+	return &commentService{commentRepo: commentRepo}
 }
 
 func (s *commentService) CreateComment(ctx context.Context, model comment_models.CommentCreateModel) (*comment_models.CommentModel, error) {
+	// Проверяем, что UserID не равен 0
 	if model.UserID == 0 {
 		return nil, errors.New("user ID is required")
-	}
-
-	if model.OrganizationID == 0 {
-		return nil, errors.New("organization ID is required")
 	}
 
 	comment := &entities.Comment{
@@ -65,15 +59,17 @@ func (s *commentService) CreateComment(ctx context.Context, model comment_models
 	}, nil
 }
 
-func (s *commentService) GetCommentsByUsername(ctx context.Context, username string) ([]*comment_models.CommentModel, error) {
-	comments, err := s.commentRepo.FindByUsername(ctx, username)
+// GetCommentsByFilters возвращает комментарии по authorUsername и organizationID (если указан)
+func (s *commentService) GetCommentsByFilters(ctx context.Context, authorUsername string, organizationID int) ([]*comment_models.CommentModel, error) {
+	comments, err := s.commentRepo.FindByFilters(ctx, authorUsername, organizationID)
 	if err != nil {
 		return nil, err
 	}
 
-	var result []*comment_models.CommentModel
+	// Конвертируем комментарии в модели для возвращения
+	var commentModels []*comment_models.CommentModel
 	for _, comment := range comments {
-		result = append(result, &comment_models.CommentModel{
+		commentModels = append(commentModels, &comment_models.CommentModel{
 			ID:                comment.ID,
 			UserID:            comment.UserID,
 			OrganizationID:    comment.OrganizationID,
@@ -87,32 +83,7 @@ func (s *commentService) GetCommentsByUsername(ctx context.Context, username str
 		})
 	}
 
-	return result, nil
-}
-
-func (s *commentService) GetCommentsByOrganizationID(ctx context.Context, organizationID int) ([]*comment_models.CommentModel, error) {
-	comments, err := s.commentRepo.FindByOrganizationID(ctx, organizationID)
-	if err != nil {
-		return nil, err
-	}
-
-	var result []*comment_models.CommentModel
-	for _, comment := range comments {
-		result = append(result, &comment_models.CommentModel{
-			ID:                comment.ID,
-			UserID:            comment.UserID,
-			OrganizationID:    comment.OrganizationID,
-			CompanyName:       comment.CompanyName,
-			TenderName:        comment.TenderName,
-			TenderDescription: comment.TenderDescription,
-			BidDescription:    comment.BidDescription,
-			ServiceType:       comment.ServiceType,
-			Content:           comment.Content,
-			CreatedAt:         comment.CreatedAt.Format(time.RFC3339),
-		})
-	}
-
-	return result, nil
+	return commentModels, nil
 }
 
 func (s *commentService) DeleteComment(ctx context.Context, id int) error {

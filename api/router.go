@@ -2,11 +2,13 @@ package api
 
 import (
 	"avitoTest/api/handlers/bid_handler"
+	"avitoTest/api/handlers/comment_handler"
 	"avitoTest/api/handlers/organization_handler"
 	"avitoTest/api/handlers/ping_handler"
 	"avitoTest/api/handlers/tender_handler"
 	"avitoTest/api/handlers/user_handler"
 	"avitoTest/services/bid_service"
+	"avitoTest/services/comment_service"
 	"avitoTest/services/organization_service"
 	"avitoTest/services/tender_service"
 	"avitoTest/services/user_service"
@@ -15,17 +17,21 @@ import (
 )
 
 // InitRoutes initializes all API routes.
-func InitRoutes(router *mux.Router,
+func InitRoutes(
+	router *mux.Router,
 	orgService organization_service.OrganizationService,
 	userService user_service.UserService,
 	tenderService tender_service.TenderService,
-	bidService bid_service.BidService) {
+	bidService bid_service.BidService,
+	commentService comment_service.CommentService) {
+
 	// Initialize individual route groups
 	initPingRoutes(router)
 	initOrganizationRoutes(router, orgService)
 	initUserRoutes(router, userService)
 	initTenderRoutes(router, tenderService, userService)
-	initBidRoutes(router, bidService)
+	initBidRoutes(router, bidService, commentService)
+	initCommentRoutes(router, commentService)
 }
 
 // initPingRoutes sets up routes for server availability checks.
@@ -76,9 +82,10 @@ func initTenderRoutes(router *mux.Router, tenderService tender_service.TenderSer
 	router.HandleFunc("/api/tenders/{tenderId}/delete", tenderHandler.DeleteTender).Methods("DELETE")
 }
 
-// initBidRoutes sets up routes for bid-related operations.
-func initBidRoutes(router *mux.Router, bidService bid_service.BidService) {
+// initBidRoutes sets up routes for bid-related operations and reviews (comments).
+func initBidRoutes(router *mux.Router, bidService bid_service.BidService, commentService comment_service.CommentService) {
 	bidHandler := bid_handler.NewBidHandler(bidService)
+	commentHandler := comment_handler.NewCommentHandler(commentService)
 
 	router.HandleFunc("/api/bids/new", bidHandler.CreateBid).Methods("POST")
 	router.HandleFunc("/api/bids/my/{username}", bidHandler.GetBidsByUsername).Methods("GET")
@@ -86,7 +93,16 @@ func initBidRoutes(router *mux.Router, bidService bid_service.BidService) {
 	router.HandleFunc("/api/bids/tender/{tenderId}", bidHandler.GetBidsByTenderID).Methods("GET")
 	router.HandleFunc("/api/bids/{bidId}/edit", bidHandler.UpdateBid).Methods("PATCH")
 	router.HandleFunc("/api/bids/{bidId}/approve/{approverId}", bidHandler.ApproveBid).Methods("POST")
-	router.HandleFunc("/api/bids/{bidId}/reject/{rejecterId}", bidHandler.RejectBid).Methods("POST")
+	router.HandleFunc("/api/bids/{bidId}/reject/", bidHandler.RejectBid).Methods("POST")
 	router.HandleFunc("/api/bids/{bidId}/rollback/{version}", bidHandler.RollbackBidVersion).Methods("PUT")
 	router.HandleFunc("/api/bids/{bidId}/delete", bidHandler.DeleteBid).Methods("DELETE")
+	router.HandleFunc("/api/bids/{tenderId}/reviews", commentHandler.GetReviews).Methods("GET")
+}
+
+// initCommentRoutes sets up routes for comment-related operations.
+func initCommentRoutes(router *mux.Router, commentService comment_service.CommentService) {
+	commentHandler := comment_handler.NewCommentHandler(commentService)
+
+	router.HandleFunc("/api/comments", commentHandler.CreateComment).Methods("POST")
+	router.HandleFunc("/api/comments/{commentId}", commentHandler.DeleteComment).Methods("DELETE")
 }
