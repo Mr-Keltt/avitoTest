@@ -16,16 +16,8 @@ func (m *MockCommentRepository) Create(ctx context.Context, comment *entities.Co
 	return args.Error(0)
 }
 
-func (m *MockCommentRepository) FindByUsername(ctx context.Context, username string) ([]*entities.Comment, error) {
-	args := m.Called(ctx, username)
-	if comments, ok := args.Get(0).([]*entities.Comment); ok {
-		return comments, args.Error(1)
-	}
-	return nil, args.Error(1)
-}
-
-func (m *MockCommentRepository) FindByOrganizationID(ctx context.Context, organizationID int) ([]*entities.Comment, error) {
-	args := m.Called(ctx, organizationID)
+func (m *MockCommentRepository) FindByFilters(ctx context.Context, authorUsername string, organizationID int) ([]*entities.Comment, error) {
+	args := m.Called(ctx, authorUsername, organizationID)
 	if comments, ok := args.Get(0).([]*entities.Comment); ok {
 		return comments, args.Error(1)
 	}

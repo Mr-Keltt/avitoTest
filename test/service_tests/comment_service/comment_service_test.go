@@ -79,7 +79,7 @@ func TestCreateComment_ValidationFail(t *testing.T) {
 	mockCommentRepo.AssertNotCalled(t, "Create")
 }
 
-func TestGetCommentsByUsername_Success(t *testing.T) {
+func TestGetCommentsByFilters_Success(t *testing.T) {
 	mockCommentRepo, service := setupMocks()
 
 	expectedComments := []*entities.Comment{
@@ -109,9 +109,9 @@ func TestGetCommentsByUsername_Success(t *testing.T) {
 		},
 	}
 
-	mockCommentRepo.On("FindByUsername", mock.Anything, "testuser").Return(expectedComments, nil)
+	mockCommentRepo.On("FindByFilters", mock.Anything, "testuser", 1).Return(expectedComments, nil)
 
-	result, err := service.GetCommentsByUsername(context.Background(), "testuser")
+	result, err := service.GetCommentsByFilters(context.Background(), "testuser", 1)
 
 	assert.NoError(t, err)
 	assert.Len(t, result, 2)
@@ -120,19 +120,7 @@ func TestGetCommentsByUsername_Success(t *testing.T) {
 	mockCommentRepo.AssertExpectations(t)
 }
 
-func TestGetCommentsByUsername_UserNotFound(t *testing.T) {
-	mockCommentRepo, service := setupMocks()
-
-	mockCommentRepo.On("FindByUsername", mock.Anything, "unknownuser").Return(nil, errors.New("no comments found"))
-
-	_, err := service.GetCommentsByUsername(context.Background(), "unknownuser")
-
-	assert.Error(t, err)
-	assert.Equal(t, "no comments found", err.Error())
-	mockCommentRepo.AssertExpectations(t)
-}
-
-func TestGetCommentsByOrganizationID_Success(t *testing.T) {
+func TestGetCommentsByFilters_NoOrganization_Success(t *testing.T) {
 	mockCommentRepo, service := setupMocks()
 
 	expectedComments := []*entities.Comment{
@@ -150,9 +138,9 @@ func TestGetCommentsByOrganizationID_Success(t *testing.T) {
 		},
 	}
 
-	mockCommentRepo.On("FindByOrganizationID", mock.Anything, 1).Return(expectedComments, nil)
+	mockCommentRepo.On("FindByFilters", mock.Anything, "testuser", 0).Return(expectedComments, nil)
 
-	result, err := service.GetCommentsByOrganizationID(context.Background(), 1)
+	result, err := service.GetCommentsByFilters(context.Background(), "testuser", 0)
 
 	assert.NoError(t, err)
 	assert.Len(t, result, 1)
@@ -160,12 +148,12 @@ func TestGetCommentsByOrganizationID_Success(t *testing.T) {
 	mockCommentRepo.AssertExpectations(t)
 }
 
-func TestGetCommentsByOrganizationID_OrgNotFound(t *testing.T) {
+func TestGetCommentsByFilters_UserNotFound(t *testing.T) {
 	mockCommentRepo, service := setupMocks()
 
-	mockCommentRepo.On("FindByOrganizationID", mock.Anything, 1).Return(nil, errors.New("no comments found"))
+	mockCommentRepo.On("FindByFilters", mock.Anything, "unknownuser", 0).Return(nil, errors.New("no comments found"))
 
-	_, err := service.GetCommentsByOrganizationID(context.Background(), 1)
+	_, err := service.GetCommentsByFilters(context.Background(), "unknownuser", 0)
 
 	assert.Error(t, err)
 	assert.Equal(t, "no comments found", err.Error())

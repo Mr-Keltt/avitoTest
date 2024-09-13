@@ -59,14 +59,13 @@ func (s *commentService) CreateComment(ctx context.Context, model comment_models
 	}, nil
 }
 
-// GetCommentsByFilters возвращает комментарии по authorUsername и organizationID (если указан)
+// GetCommentsByFilters returns comments by authorUsername and organizationID (if specified)
 func (s *commentService) GetCommentsByFilters(ctx context.Context, authorUsername string, organizationID int) ([]*comment_models.CommentModel, error) {
 	comments, err := s.commentRepo.FindByFilters(ctx, authorUsername, organizationID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Конвертируем комментарии в модели для возвращения
 	var commentModels []*comment_models.CommentModel
 	for _, comment := range comments {
 		commentModels = append(commentModels, &comment_models.CommentModel{
