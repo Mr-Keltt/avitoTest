@@ -48,6 +48,7 @@ CREATE TABLE bids (
     organization_id INT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     creator_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     approval_count INT DEFAULT 0 NOT NULL,
+    status VARCHAR(50),
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -56,7 +57,6 @@ CREATE TABLE bid_versions (
     bid_id INT NOT NULL REFERENCES bids(id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
     description VARCHAR(255),
-    status VARCHAR(50),
     version INT NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );

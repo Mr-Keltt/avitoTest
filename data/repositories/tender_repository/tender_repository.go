@@ -26,5 +26,7 @@ type TenderRepository interface {
 	// User Responsibility Check
 	FindUserOrganizationResponsibility(ctx context.Context, userID, orgID int) (*entities.OrganizationResponsible, error)
 
+	PublishTender(ctx context.Context, tenderID int) error
+	CloseTender(ctx context.Context, tenderID int) error
 	Delete(ctx context.Context, id int) error
 }

@@ -2,7 +2,6 @@ package api_tests
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -11,6 +10,7 @@ import (
 
 	"avitoTest/api/handlers/user_handler"
 	"avitoTest/api/handlers/user_handler/user_handler_models"
+	"avitoTest/services/user_service"
 	"avitoTest/services/user_service/user_models"
 
 	"github.com/gorilla/mux"
@@ -18,44 +18,14 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// MockUserService is a mock implementation of the UserService interface
-type MockUserService struct {
-	mock.Mock
-}
-
-func (m *MockUserService) CreateUser(ctx context.Context, user user_models.UserCreateModel) (*user_models.UserModel, error) {
-	args := m.Called(ctx, user)
-	return args.Get(0).(*user_models.UserModel), args.Error(1)
-}
-
-func (m *MockUserService) UpdateUser(ctx context.Context, user user_models.UserUpdateModel) (*user_models.UserModel, error) {
-	args := m.Called(ctx, user)
-	return args.Get(0).(*user_models.UserModel), args.Error(1)
-}
-
-func (m *MockUserService) GetUsers(ctx context.Context) ([]*user_models.UserModel, error) {
-	args := m.Called(ctx)
-	return args.Get(0).([]*user_models.UserModel), args.Error(1)
-}
-
-func (m *MockUserService) GetUserByID(ctx context.Context, id int) (*user_models.UserModel, error) {
-	args := m.Called(ctx, id)
-	return args.Get(0).(*user_models.UserModel), args.Error(1)
-}
-
-func (m *MockUserService) DeleteUser(ctx context.Context, id int) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
-}
-
-func (m *MockUserService) GetUserByUsername(ctx context.Context, username string) (*user_models.UserModel, error) {
-	args := m.Called(ctx, username)
-	return args.Get(0).(*user_models.UserModel), args.Error(1)
+func setupMocks() (*user_service.MockUserService, *user_handler.UserHandler) {
+	service := new(user_service.MockUserService)
+	handler := user_handler.NewUserHandler(service)
+	return service, handler
 }
 
 func TestCreateUser(t *testing.T) {
-	service := new(MockUserService)
-	handler := user_handler.NewUserHandler(service)
+	service, handler := setupMocks()
 
 	reqBody := &user_handler_models.CreateUserRequest{
 		Username:  "jdoe",
@@ -94,8 +64,7 @@ func TestCreateUser(t *testing.T) {
 }
 
 func TestUpdateUser(t *testing.T) {
-	service := new(MockUserService)
-	handler := user_handler.NewUserHandler(service)
+	service, handler := setupMocks()
 
 	reqBody := &user_handler_models.UpdateUserRequest{
 		Username:  "jdoe_updated",
@@ -139,8 +108,7 @@ func TestUpdateUser(t *testing.T) {
 }
 
 func TestGetUserByID(t *testing.T) {
-	service := new(MockUserService)
-	handler := user_handler.NewUserHandler(service)
+	service, handler := setupMocks()
 
 	req := httptest.NewRequest("GET", "/api/users/1", nil)
 	rr := httptest.NewRecorder()
@@ -177,8 +145,7 @@ func TestGetUserByID(t *testing.T) {
 }
 
 func TestDeleteUser(t *testing.T) {
-	service := new(MockUserService)
-	handler := user_handler.NewUserHandler(service)
+	service, handler := setupMocks()
 
 	req := httptest.NewRequest("DELETE", "/api/users/1", nil)
 	rr := httptest.NewRecorder()

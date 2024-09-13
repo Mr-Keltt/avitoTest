@@ -4,7 +4,6 @@ package api_tests
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -13,7 +12,9 @@ import (
 
 	"avitoTest/api/handlers/tender_handler"
 	"avitoTest/api/handlers/tender_handler/tender_handler_models"
+	"avitoTest/services/tender_service"
 	"avitoTest/services/tender_service/tender_models"
+	"avitoTest/services/user_service"
 	"avitoTest/services/user_service/user_models"
 	"avitoTest/shared/constants"
 
@@ -22,60 +23,15 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// MockTenderService is a mock implementation of the TenderService interface
-type MockTenderService struct {
-	mock.Mock
-}
-
-func (m *MockTenderService) CreateTender(ctx context.Context, tender tender_models.TenderCreateModel) (*tender_models.TenderModel, error) {
-	args := m.Called(ctx, tender)
-	return args.Get(0).(*tender_models.TenderModel), args.Error(1)
-}
-
-func (m *MockTenderService) UpdateTender(ctx context.Context, tender tender_models.TenderUpdateModel) (*tender_models.TenderModel, error) {
-	args := m.Called(ctx, tender)
-	return args.Get(0).(*tender_models.TenderModel), args.Error(1)
-}
-
-func (m *MockTenderService) PublishTender(ctx context.Context, tenderID int) error {
-	args := m.Called(ctx, tenderID)
-	return args.Error(0)
-}
-
-func (m *MockTenderService) CloseTender(ctx context.Context, tenderID int) error {
-	args := m.Called(ctx, tenderID)
-	return args.Error(0)
-}
-
-func (m *MockTenderService) GetTenderByID(ctx context.Context, id int) (*tender_models.TenderModel, error) {
-	args := m.Called(ctx, id)
-	return args.Get(0).(*tender_models.TenderModel), args.Error(1)
-}
-
-func (m *MockTenderService) RollbackTenderVersion(ctx context.Context, tenderID int, version int) (*tender_models.TenderModel, error) {
-	args := m.Called(ctx, tenderID, version)
-	return args.Get(0).(*tender_models.TenderModel), args.Error(1)
-}
-
-func (m *MockTenderService) GetAllTenders(ctx context.Context, serviceTypeFilter string) ([]*tender_models.TenderModel, error) {
-	args := m.Called(ctx, serviceTypeFilter)
-	return args.Get(0).([]*tender_models.TenderModel), args.Error(1)
-}
-
-func (m *MockTenderService) DeleteTender(ctx context.Context, tenderID int) error {
-	args := m.Called(ctx, tenderID)
-	return args.Error(0)
-}
-
-func (m *MockTenderService) GetTendersByUsername(ctx context.Context, username string) ([]*tender_models.TenderModel, error) {
-	args := m.Called(ctx, username)
-	return args.Get(0).([]*tender_models.TenderModel), args.Error(1)
+func setupMocks() (*tender_service.MockTenderService, *user_service.MockUserService, *tender_handler.TenderHandler) {
+	service := new(tender_service.MockTenderService)
+	userService := new(user_service.MockUserService)
+	handler := tender_handler.NewTenderHandler(service, userService)
+	return service, userService, handler
 }
 
 func TestCreateTender(t *testing.T) {
-	service := new(MockTenderService)
-	userService := new(MockUserService)
-	handler := tender_handler.NewTenderHandler(service, userService)
+	service, userService, handler := setupMocks()
 
 	// Mock GetUserByUsername for CreatorUsername
 	userModel := &user_models.UserModel{ID: 1, Username: "CreatorUsername 1"}
@@ -131,9 +87,7 @@ func TestCreateTender(t *testing.T) {
 }
 
 func TestGetTenderByID(t *testing.T) {
-	tender_service := new(MockTenderService)
-	user_service := new(MockUserService)
-	handler := tender_handler.NewTenderHandler(tender_service, user_service)
+	service, _, handler := setupMocks()
 
 	req := httptest.NewRequest("GET", "/api/tenders/1", nil)
 	rr := httptest.NewRecorder()
@@ -149,7 +103,7 @@ func TestGetTenderByID(t *testing.T) {
 		Version:        1,
 	}
 
-	tender_service.On("GetTenderByID", mock.Anything, 1).Return(expectedResponse, nil)
+	service.On("GetTenderByID", mock.Anything, 1).Return(expectedResponse, nil)
 
 	vars := map[string]string{
 		"tenderId": "1",
@@ -167,13 +121,11 @@ func TestGetTenderByID(t *testing.T) {
 	assert.Equal(t, expectedResponse.Name, response.Name)
 	assert.Equal(t, expectedResponse.Description, response.Description)
 
-	tender_service.AssertExpectations(t)
+	service.AssertExpectations(t)
 }
 
 func TestGetTenders(t *testing.T) {
-	service := new(MockTenderService)
-	userService := new(MockUserService)
-	handler := tender_handler.NewTenderHandler(service, userService)
+	service, _, handler := setupMocks()
 
 	req := httptest.NewRequest("GET", "/api/tenders", nil)
 	rr := httptest.NewRecorder()
@@ -218,14 +170,12 @@ func TestGetTenders(t *testing.T) {
 }
 
 func TestPublishTender(t *testing.T) {
-	tender_service := new(MockTenderService)
-	user_service := new(MockUserService)
-	handler := tender_handler.NewTenderHandler(tender_service, user_service)
+	service, _, handler := setupMocks()
 
 	req := httptest.NewRequest("POST", "/api/tenders/1/publish", nil)
 	rr := httptest.NewRecorder()
 
-	tender_service.On("PublishTender", mock.Anything, 1).Return(nil)
+	service.On("PublishTender", mock.Anything, 1).Return(nil)
 
 	vars := map[string]string{
 		"tenderId": "1",
@@ -236,18 +186,16 @@ func TestPublishTender(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
-	tender_service.AssertExpectations(t)
+	service.AssertExpectations(t)
 }
 
 func TestCloseTender(t *testing.T) {
-	tender_service := new(MockTenderService)
-	user_service := new(MockUserService)
-	handler := tender_handler.NewTenderHandler(tender_service, user_service)
+	service, _, handler := setupMocks()
 
 	req := httptest.NewRequest("POST", "/api/tenders/1/close", nil)
 	rr := httptest.NewRecorder()
 
-	tender_service.On("CloseTender", mock.Anything, 1).Return(nil)
+	service.On("CloseTender", mock.Anything, 1).Return(nil)
 
 	vars := map[string]string{
 		"tenderId": "1",
@@ -258,13 +206,11 @@ func TestCloseTender(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
-	tender_service.AssertExpectations(t)
+	service.AssertExpectations(t)
 }
 
 func TestRollbackTenderVersion(t *testing.T) {
-	tender_service := new(MockTenderService)
-	user_service := new(MockUserService)
-	handler := tender_handler.NewTenderHandler(tender_service, user_service)
+	service, _, handler := setupMocks()
 
 	req := httptest.NewRequest("PUT", "/api/tenders/1/rollback/2", nil)
 	rr := httptest.NewRecorder()
@@ -280,7 +226,7 @@ func TestRollbackTenderVersion(t *testing.T) {
 		Version:        2,
 	}
 
-	tender_service.On("RollbackTenderVersion", mock.Anything, 1, 2).Return(expectedResponse, nil)
+	service.On("RollbackTenderVersion", mock.Anything, 1, 2).Return(expectedResponse, nil)
 
 	vars := map[string]string{
 		"tenderId": "1",
@@ -299,13 +245,11 @@ func TestRollbackTenderVersion(t *testing.T) {
 	assert.Equal(t, expectedResponse.Name, response.Name)
 	assert.Equal(t, expectedResponse.Description, response.Description)
 
-	tender_service.AssertExpectations(t)
+	service.AssertExpectations(t)
 }
 
 func TestGetTendersByUsername(t *testing.T) {
-	tender_service := new(MockTenderService)
-	user_service := new(MockUserService)
-	handler := tender_handler.NewTenderHandler(tender_service, user_service)
+	service, _, handler := setupMocks()
 
 	req := httptest.NewRequest("GET", "/api/tenders/username/testuser", nil)
 	rr := httptest.NewRecorder()
@@ -333,7 +277,7 @@ func TestGetTendersByUsername(t *testing.T) {
 		},
 	}
 
-	tender_service.On("GetTendersByUsername", mock.Anything, "testuser").Return(expectedTenders, nil)
+	service.On("GetTendersByUsername", mock.Anything, "testuser").Return(expectedTenders, nil)
 
 	vars := map[string]string{
 		"username": "testuser",
@@ -351,18 +295,16 @@ func TestGetTendersByUsername(t *testing.T) {
 	assert.Equal(t, expectedTenders[0].ID, response[0].ID)
 	assert.Equal(t, expectedTenders[1].ID, response[1].ID)
 
-	tender_service.AssertExpectations(t)
+	service.AssertExpectations(t)
 }
 
 func TestDeleteTender(t *testing.T) {
-	tender_service := new(MockTenderService)
-	user_service := new(MockUserService)
-	handler := tender_handler.NewTenderHandler(tender_service, user_service)
+	service, _, handler := setupMocks()
 
 	req := httptest.NewRequest("DELETE", "/api/tenders/1", nil)
 	rr := httptest.NewRecorder()
 
-	tender_service.On("DeleteTender", mock.Anything, 1).Return(nil)
+	service.On("DeleteTender", mock.Anything, 1).Return(nil)
 
 	vars := map[string]string{
 		"tenderId": "1",
@@ -373,5 +315,5 @@ func TestDeleteTender(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
-	tender_service.AssertExpectations(t)
+	service.AssertExpectations(t)
 }

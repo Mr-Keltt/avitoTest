@@ -15,6 +15,7 @@ type Bid struct {
 	Creator        User         `gorm:"foreignKey:CreatorID;constraint:OnDelete:CASCADE;"`
 	ApprovalCount  int          `gorm:"not null;default:0"`
 	Versions       []BidVersion `gorm:"foreignKey:BidID;constraint:OnDelete:CASCADE;"`
+	Status         string       `gorm:"size:50"`
 	CreatedAt      time.Time    `gorm:"autoCreateTime"`
 }
 
@@ -25,7 +26,6 @@ type BidVersion struct {
 	Bid         Bid       `gorm:"foreignKey:BidID"`
 	Name        string    `gorm:"not null;size:100"`
 	Description string    `gorm:"size:255"`
-	Status      string    `gorm:"size:50"`
 	Version     int       `gorm:"not null"`
 	UpdatedAt   time.Time `gorm:"autoUpdateTime"`
 }
