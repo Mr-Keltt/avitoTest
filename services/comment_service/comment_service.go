@@ -9,12 +9,6 @@ import (
 	"time"
 )
 
-type CommentService interface {
-	CreateComment(ctx context.Context, model comment_models.CommentCreateModel) (*comment_models.CommentModel, error)
-	GetCommentsByFilters(ctx context.Context, authorUsername string, organizationID int) ([]*comment_models.CommentModel, error)
-	DeleteComment(ctx context.Context, id int) error
-}
-
 type commentService struct {
 	commentRepo comment_repository.CommentRepository
 }
