@@ -4,6 +4,7 @@ import (
 	"avitoTest/data/entities"
 	"avitoTest/data/repositories/bid_repository"
 	"avitoTest/data/repositories/organization_repository"
+	"avitoTest/data/repositories/tender_repository"
 	"avitoTest/data/repositories/user_repository"
 	"avitoTest/services/bid_service"
 	"avitoTest/services/bid_service/bid_models"
@@ -17,16 +18,17 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func setupMocks() (*bid_repository.MockBidRepository, *organization_repository.MockOrganizationRepository, *user_repository.MockUserRepository, bid_service.BidService) {
+func setupMocks() (*bid_repository.MockBidRepository, *organization_repository.MockOrganizationRepository, *user_repository.MockUserRepository, *tender_repository.MockTenderRepository, bid_service.BidService) {
 	mockBidRepo := new(bid_repository.MockBidRepository)
 	mockOrgRepo := new(organization_repository.MockOrganizationRepository)
 	mockUserRepo := new(user_repository.MockUserRepository)
-	service := bid_service.NewBidService(mockBidRepo, mockOrgRepo, mockUserRepo)
-	return mockBidRepo, mockOrgRepo, mockUserRepo, service
+	mockTenderRepo := new(tender_repository.MockTenderRepository)
+	service := bid_service.NewBidService(mockBidRepo, mockOrgRepo, mockUserRepo, mockTenderRepo)
+	return mockBidRepo, mockOrgRepo, mockUserRepo, mockTenderRepo, service
 }
 
 func TestCreateBid_Success(t *testing.T) {
-	mockBidRepo, _, _, service := setupMocks()
+	mockBidRepo, _, _, _, service := setupMocks()
 
 	bidCreate := bid_models.BidCreateModel{
 		Name:           "Bid 1",
@@ -34,7 +36,6 @@ func TestCreateBid_Success(t *testing.T) {
 		TenderID:       1,
 		OrganizationID: 1,
 		CreatorID:      1,
-		Status:         "CREATED",
 	}
 
 	expectedEntity := &entities.Bid{
@@ -42,18 +43,16 @@ func TestCreateBid_Success(t *testing.T) {
 		TenderID:       bidCreate.TenderID,
 		OrganizationID: bidCreate.OrganizationID,
 		CreatorID:      bidCreate.CreatorID,
-		Status:         bidCreate.Status,
+		Status:         "CREATED",
 		CreatedAt:      time.Now(),
 	}
 
-	// Mock the Create method for Bid
 	mockBidRepo.On("Create", mock.Anything, mock.AnythingOfType("*entities.Bid")).Return(nil).Run(func(args mock.Arguments) {
 		bid := args.Get(1).(*entities.Bid)
 		bid.ID = expectedEntity.ID
 		bid.CreatedAt = expectedEntity.CreatedAt
 	})
 
-	// Mock the CreateVersion method for BidVersion
 	expectedVersion := &entities.BidVersion{
 		BidID:       expectedEntity.ID,
 		Name:        bidCreate.Name,
@@ -71,10 +70,8 @@ func TestCreateBid_Success(t *testing.T) {
 		version.UpdatedAt = expectedVersion.UpdatedAt
 	})
 
-	// Execute the CreateBid method in the service
 	result, err := service.CreateBid(context.Background(), bidCreate)
 
-	// Assertions
 	assert.NoError(t, err)
 	assert.Equal(t, expectedEntity.ID, result.ID)
 	assert.Equal(t, bidCreate.Name, result.Name)
@@ -84,7 +81,7 @@ func TestCreateBid_Success(t *testing.T) {
 
 func TestCreateBid_ValidationFail(t *testing.T) {
 	// Setup mock repository and service
-	mockBidRepo, _, _, service := setupMocks()
+	mockBidRepo, _, _, _, service := setupMocks()
 
 	// Prepare invalid BidCreateModel (missing required fields, e.g., Name is empty)
 	bidCreate := bid_models.BidCreateModel{
@@ -109,7 +106,7 @@ func TestCreateBid_ValidationFail(t *testing.T) {
 }
 
 func TestUpdateBid_Success(t *testing.T) {
-	mockBidRepo, _, _, service := setupMocks()
+	mockBidRepo, _, _, _, service := setupMocks()
 
 	bidUpdate := bid_models.BidUpdateModel{
 		ID:          1,
@@ -145,7 +142,7 @@ func TestUpdateBid_Success(t *testing.T) {
 }
 
 func TestUpdateBid_NotFound(t *testing.T) {
-	mockBidRepo, _, _, service := setupMocks()
+	mockBidRepo, _, _, _, service := setupMocks()
 
 	bidUpdate := bid_models.BidUpdateModel{
 		ID:          1,
@@ -163,7 +160,7 @@ func TestUpdateBid_NotFound(t *testing.T) {
 }
 
 func TestGetBidByID_Success(t *testing.T) {
-	mockBidRepo, _, _, service := setupMocks()
+	mockBidRepo, _, _, _, service := setupMocks()
 
 	expectedBid := &entities.Bid{
 		ID:             1,
@@ -192,7 +189,7 @@ func TestGetBidByID_Success(t *testing.T) {
 }
 
 func TestGetBidByID_NotFound(t *testing.T) {
-	mockBidRepo, _, _, service := setupMocks()
+	mockBidRepo, _, _, _, service := setupMocks()
 
 	mockBidRepo.On("FindByID", mock.Anything, 1).Return(nil, errors.New("bid not found"))
 
@@ -204,7 +201,7 @@ func TestGetBidByID_NotFound(t *testing.T) {
 }
 
 func TestGetBidsByTenderID_Success(t *testing.T) {
-	mockBidRepo, _, _, service := setupMocks()
+	mockBidRepo, _, _, _, service := setupMocks()
 
 	expectedBids := []*entities.Bid{
 		{
@@ -236,7 +233,7 @@ func TestGetBidsByTenderID_Success(t *testing.T) {
 }
 
 func TestGetBidsByTenderID_NotFound(t *testing.T) {
-	mockBidRepo, _, _, service := setupMocks()
+	mockBidRepo, _, _, _, service := setupMocks()
 
 	mockBidRepo.On("FindByTenderID", mock.Anything, 1).Return(nil, errors.New("no bids found"))
 
@@ -248,7 +245,7 @@ func TestGetBidsByTenderID_NotFound(t *testing.T) {
 }
 
 func TestGetBidsByUsername_Success(t *testing.T) {
-	mockBidRepo, _, mockUserRepo, service := setupMocks()
+	mockBidRepo, _, mockUserRepo, _, service := setupMocks()
 
 	expectedUser := &entities.User{
 		ID:       1,
@@ -312,7 +309,7 @@ func TestGetBidsByUsername_Success(t *testing.T) {
 }
 
 func TestGetBidsByUsername_UserNotFound(t *testing.T) {
-	mockBidRepo, _, mockUserRepo, service := setupMocks()
+	mockBidRepo, _, mockUserRepo, _, service := setupMocks()
 
 	mockUserRepo.On("FindByUsername", mock.Anything, "unknownuser").Return(nil, errors.New("user not found"))
 
@@ -325,7 +322,7 @@ func TestGetBidsByUsername_UserNotFound(t *testing.T) {
 }
 
 func TestGetBidsByUsername_NoBidsFound(t *testing.T) {
-	mockBidRepo, _, mockUserRepo, service := setupMocks()
+	mockBidRepo, _, mockUserRepo, _, service := setupMocks()
 
 	expectedUser := &entities.User{
 		ID:       1,
@@ -344,13 +341,12 @@ func TestGetBidsByUsername_NoBidsFound(t *testing.T) {
 }
 
 // func TestApproveBid_Success(t *testing.T) {
-// 	mockBidRepo, mockOrgRepo, service := setupMocks()
+// 	mockBidRepo, mockOrgRepo, _, _, service := setupMocks()
 
 // 	existingBid := &entities.Bid{
 // 		ID:             1,
 // 		TenderID:       1,
 // 		OrganizationID: 1,
-// 		CreatorID:      1,
 // 		ApprovalCount:  2, // Start with 2 approvals.
 // 		Status:         "CREATED",
 // 		CreatedAt:      time.Now(),
@@ -359,12 +355,15 @@ func TestGetBidsByUsername_NoBidsFound(t *testing.T) {
 // 	// Mock returning the existing bid
 // 	mockBidRepo.On("FindByID", mock.Anything, 1).Return(existingBid, nil)
 
-// 	// Mock returning the responsible users, including the approver
+// 	// Mock returning true for user responsibility check
 // 	mockOrgRepo.On("GetResponsibles", mock.Anything, 1).Return([]*user_models.UserModel{
 // 		{ID: 1, Username: "user1"}, // Approver
 // 		{ID: 2, Username: "user2"},
 // 		{ID: 3, Username: "user3"},
 // 	}, nil)
+
+// 	// Mock returning true for isUserResponsibleForOrganization
+// 	mockBidRepo.On("isUserResponsibleForOrganization", mock.Anything, 1, 1).Return(true, nil)
 
 // 	// Mock updating the bid after approval
 // 	mockBidRepo.On("Update", mock.Anything, mock.AnythingOfType("*entities.Bid")).Return(nil).Run(func(args mock.Arguments) {
@@ -385,7 +384,7 @@ func TestGetBidsByUsername_NoBidsFound(t *testing.T) {
 // }
 
 func TestApproveBid_NotFound(t *testing.T) {
-	mockBidRepo, _, _, service := setupMocks()
+	mockBidRepo, _, _, _, service := setupMocks()
 
 	mockBidRepo.On("FindByID", mock.Anything, 1).Return(nil, errors.New("bid not found"))
 
@@ -397,7 +396,7 @@ func TestApproveBid_NotFound(t *testing.T) {
 }
 
 func TestApproveBid_UserNotResponsible(t *testing.T) {
-	mockBidRepo, mockOrgRepo, _, service := setupMocks()
+	mockBidRepo, mockOrgRepo, _, _, service := setupMocks()
 
 	existingBid := &entities.Bid{
 		ID:             1,
@@ -421,47 +420,32 @@ func TestApproveBid_UserNotResponsible(t *testing.T) {
 }
 
 // func TestRejectBid_Success(t *testing.T) {
-// 	mockBidRepo, mockOrgRepo, service := setupMocks()
+// 	mockBidRepo, mockOrgRepo, _, _, service := setupMocks()
 
-// 	// Подготавливаем существующее предложение
 // 	existingBid := &entities.Bid{
 // 		ID:             1,
 // 		TenderID:       1,
 // 		OrganizationID: 1,
-// 		CreatorID:      1,
 // 		Status:         "CREATED",
-// 		CreatedAt:      time.Now(),
 // 	}
 
-// 	// Мокируем вызов FindByID для получения предложения
 // 	mockBidRepo.On("FindByID", mock.Anything, 1).Return(existingBid, nil)
-
-// 	// Мокируем вызов GetResponsibles, добавляем пользователя с ID 1 как ответственного
 // 	mockOrgRepo.On("GetResponsibles", mock.Anything, 1).Return([]*user_models.UserModel{
-// 		{ID: 1, Username: "user1"}, // Текущий пользователь
-// 		{ID: 2, Username: "user2"},
-// 		{ID: 3, Username: "user3"},
+// 		{ID: 1},
 // 	}, nil)
 
-// 	// Мокируем вызов Update для обновления предложения
 // 	mockBidRepo.On("Update", mock.Anything, mock.AnythingOfType("*entities.Bid")).Return(nil)
 
-// 	// Вызываем метод RejectBid
 // 	err := service.RejectBid(context.Background(), 1, 1)
 
-// 	// Проверяем, что ошибок нет
 // 	assert.NoError(t, err)
-
-// 	// Проверяем, что статус предложения изменился на "REJECTED"
 // 	assert.Equal(t, "REJECTED", existingBid.Status)
-
-// 	// Убеждаемся, что все ожидаемые вызовы были выполнены
 // 	mockBidRepo.AssertExpectations(t)
 // 	mockOrgRepo.AssertExpectations(t)
 // }
 
 func TestRejectBid_NotFound(t *testing.T) {
-	mockBidRepo, _, _, service := setupMocks()
+	mockBidRepo, _, _, _, service := setupMocks()
 
 	mockBidRepo.On("FindByID", mock.Anything, 1).Return(nil, errors.New("bid not found"))
 
@@ -473,7 +457,7 @@ func TestRejectBid_NotFound(t *testing.T) {
 }
 
 func TestRejectBid_UserNotResponsible(t *testing.T) {
-	mockBidRepo, mockOrgRepo, _, service := setupMocks()
+	mockBidRepo, mockOrgRepo, _, _, service := setupMocks()
 
 	existingBid := &entities.Bid{
 		ID:             1,
@@ -497,15 +481,13 @@ func TestRejectBid_UserNotResponsible(t *testing.T) {
 }
 
 func TestRollbackBidVersion_Success(t *testing.T) {
-	mockBidRepo, _, _, service := setupMocks()
+	mockBidRepo, _, _, _, service := setupMocks()
 
 	existingBid := &entities.Bid{
 		ID:             1,
 		TenderID:       1,
 		OrganizationID: 1,
-		CreatorID:      1,
 		Status:         "CREATED",
-		CreatedAt:      time.Now(),
 	}
 
 	rollbackVersion := &entities.BidVersion{
@@ -513,7 +495,6 @@ func TestRollbackBidVersion_Success(t *testing.T) {
 		Name:        "Version 1",
 		Description: "Description",
 		Version:     1,
-		UpdatedAt:   time.Now(),
 	}
 
 	mockBidRepo.On("FindByID", mock.Anything, 1).Return(existingBid, nil)
@@ -528,7 +509,7 @@ func TestRollbackBidVersion_Success(t *testing.T) {
 }
 
 func TestRollbackBidVersion_NotFound(t *testing.T) {
-	mockBidRepo, _, _, service := setupMocks()
+	mockBidRepo, _, _, _, service := setupMocks()
 
 	mockBidRepo.On("FindByID", mock.Anything, 1).Return(nil, errors.New("bid not found"))
 
@@ -536,5 +517,26 @@ func TestRollbackBidVersion_NotFound(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Equal(t, "bid not found", err.Error())
+	mockBidRepo.AssertExpectations(t)
+}
+
+func TestDeleteBid_Success(t *testing.T) {
+	mockBidRepo, _, _, _, service := setupMocks()
+
+	existingBid := &entities.Bid{
+		ID:             1,
+		TenderID:       1,
+		OrganizationID: 1,
+		CreatorID:      1,
+		Status:         "CREATED",
+		CreatedAt:      time.Now(),
+	}
+
+	mockBidRepo.On("FindByID", mock.Anything, 1).Return(existingBid, nil)
+	mockBidRepo.On("Delete", mock.Anything, 1).Return(nil)
+
+	err := service.DeleteBid(context.Background(), 1)
+
+	assert.NoError(t, err)
 	mockBidRepo.AssertExpectations(t)
 }

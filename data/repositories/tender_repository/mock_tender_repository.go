@@ -87,3 +87,13 @@ func (m *MockTenderRepository) Delete(ctx context.Context, id int) error {
 	args := m.Called(ctx, id)
 	return args.Error(0)
 }
+
+func (m *MockTenderRepository) CloseTender(ctx context.Context, tenderID int) error {
+	args := m.Called(ctx, tenderID)
+	return args.Error(0)
+}
+
+func (m *MockTenderRepository) PublishTender(ctx context.Context, tenderID int) error {
+	args := m.Called(ctx, tenderID)
+	return args.Error(0)
+}

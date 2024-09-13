@@ -202,3 +202,106 @@ func TestGetTenderByID_Success(t *testing.T) {
 	assert.Equal(t, latestVersion.Description, result.Description)
 	mockTenderRepo.AssertExpectations(t)
 }
+
+// Test for PublishTender
+func TestPublishTender_Success(t *testing.T) {
+	mockTenderRepo, _, service := setupMocks()
+
+	tenderID := 1
+	existingEntity := &entities.Tender{
+		ID:             tenderID,
+		OrganizationID: 1,
+		CreatorID:      1,
+		ServiceType:    "Construction",
+		Status:         string(constants.TenderStatusCreated),
+		CreatedAt:      time.Now(),
+	}
+
+	mockTenderRepo.On("FindByID", mock.Anything, tenderID).Return(existingEntity, nil)
+	mockTenderRepo.On("Update", mock.Anything, mock.AnythingOfType("*entities.Tender")).Return(nil).Run(func(args mock.Arguments) {
+		tender := args.Get(1).(*entities.Tender)
+		assert.Equal(t, string(constants.TenderStatusPublished), tender.Status)
+	})
+
+	err := service.PublishTender(context.Background(), tenderID)
+
+	assert.NoError(t, err)
+	mockTenderRepo.AssertExpectations(t)
+}
+
+// Test for CloseTender
+func TestCloseTender_Success(t *testing.T) {
+	mockTenderRepo, _, service := setupMocks()
+
+	tenderID := 1
+	existingEntity := &entities.Tender{
+		ID:             tenderID,
+		OrganizationID: 1,
+		CreatorID:      1,
+		ServiceType:    "Construction",
+		Status:         string(constants.TenderStatusCreated),
+		CreatedAt:      time.Now(),
+	}
+
+	mockTenderRepo.On("FindByID", mock.Anything, tenderID).Return(existingEntity, nil)
+	mockTenderRepo.On("Update", mock.Anything, mock.AnythingOfType("*entities.Tender")).Return(nil).Run(func(args mock.Arguments) {
+		tender := args.Get(1).(*entities.Tender)
+		assert.Equal(t, string(constants.TenderStatusClosed), tender.Status)
+	})
+
+	err := service.CloseTender(context.Background(), tenderID)
+
+	assert.NoError(t, err)
+	mockTenderRepo.AssertExpectations(t)
+}
+
+// Test for RollbackTenderVersion
+func TestRollbackTenderVersion_Success(t *testing.T) {
+	mockTenderRepo, _, service := setupMocks()
+
+	tenderID := 1
+	rollbackVersion := 1
+	latestVersion := &entities.TenderVersion{
+		ID:          2,
+		TenderID:    tenderID,
+		Name:        "Updated Tender",
+		Description: "Updated Description",
+		Version:     2,
+		UpdatedAt:   time.Now(),
+	}
+
+	existingEntity := &entities.Tender{
+		ID:             tenderID,
+		OrganizationID: 1,
+		CreatorID:      1,
+		ServiceType:    "Construction",
+		Status:         string(constants.TenderStatusCreated),
+		CreatedAt:      time.Now(),
+	}
+
+	rollbackEntity := &entities.TenderVersion{
+		ID:          1,
+		TenderID:    tenderID,
+		Name:        "Initial Tender",
+		Description: "Initial Description",
+		Version:     rollbackVersion,
+		UpdatedAt:   time.Now().Add(-time.Hour * 24),
+	}
+
+	mockTenderRepo.On("FindByID", mock.Anything, tenderID).Return(existingEntity, nil)
+	mockTenderRepo.On("FindLatestVersion", mock.Anything, tenderID).Return(latestVersion, nil)
+	mockTenderRepo.On("FindVersionByNumber", mock.Anything, tenderID, rollbackVersion).Return(rollbackEntity, nil)
+	mockTenderRepo.On("CreateVersion", mock.Anything, mock.AnythingOfType("*entities.TenderVersion")).Return(nil).Run(func(args mock.Arguments) {
+		version := args.Get(1).(*entities.TenderVersion)
+		assert.Equal(t, rollbackEntity.Name, version.Name)
+		assert.Equal(t, rollbackEntity.Description, version.Description)
+		assert.Equal(t, latestVersion.Version+1, version.Version)
+	})
+
+	result, err := service.RollbackTenderVersion(context.Background(), tenderID, rollbackVersion)
+
+	assert.NoError(t, err)
+	assert.Equal(t, rollbackEntity.Name, result.Name)
+	assert.Equal(t, rollbackEntity.Description, result.Description)
+	mockTenderRepo.AssertExpectations(t)
+}
