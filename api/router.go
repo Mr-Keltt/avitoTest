@@ -1,10 +1,12 @@
 package api
 
 import (
+	"avitoTest/api/handlers/bid_handler"
 	"avitoTest/api/handlers/organization_handler"
 	"avitoTest/api/handlers/ping_handler"
 	"avitoTest/api/handlers/tender_handler"
 	"avitoTest/api/handlers/user_handler"
+	"avitoTest/services/bid_service"
 	"avitoTest/services/organization_service"
 	"avitoTest/services/tender_service"
 	"avitoTest/services/user_service"
@@ -16,12 +18,14 @@ import (
 func InitRoutes(router *mux.Router,
 	orgService organization_service.OrganizationService,
 	userService user_service.UserService,
-	tenderService tender_service.TenderService) {
+	tenderService tender_service.TenderService,
+	bidService bid_service.BidService) {
 	// Initialize individual route groups
 	initPingRoutes(router)
 	initOrganizationRoutes(router, orgService)
 	initUserRoutes(router, userService)
 	initTenderRoutes(router, tenderService, userService)
+	initBidRoutes(router, bidService)
 }
 
 // initPingRoutes sets up routes for server availability checks.
@@ -70,4 +74,19 @@ func initTenderRoutes(router *mux.Router, tenderService tender_service.TenderSer
 	router.HandleFunc("/api/tenders/{tenderId}/close", tenderHandler.CloseTender).Methods("POST")
 	router.HandleFunc("/api/tenders/{tenderId}/rollback/{version}", tenderHandler.RollbackTenderVersion).Methods("PUT")
 	router.HandleFunc("/api/tenders/{tenderId}/delete", tenderHandler.DeleteTender).Methods("DELETE")
+}
+
+// initBidRoutes sets up routes for bid-related operations.
+func initBidRoutes(router *mux.Router, bidService bid_service.BidService) {
+	bidHandler := bid_handler.NewBidHandler(bidService)
+
+	router.HandleFunc("/api/bids/new", bidHandler.CreateBid).Methods("POST")
+	router.HandleFunc("/api/bids/my/{username}", bidHandler.GetBidsByUsername).Methods("GET")
+	router.HandleFunc("/api/bids/{bidId}", bidHandler.GetBidByID).Methods("GET")
+	router.HandleFunc("/api/bids/tender/{tenderId}", bidHandler.GetBidsByTenderID).Methods("GET")
+	router.HandleFunc("/api/bids/{bidId}/edit", bidHandler.UpdateBid).Methods("PATCH")
+	router.HandleFunc("/api/bids/{bidId}/approve/{approverId}", bidHandler.ApproveBid).Methods("POST")
+	router.HandleFunc("/api/bids/{bidId}/reject/{rejecterId}", bidHandler.RejectBid).Methods("POST")
+	router.HandleFunc("/api/bids/{bidId}/rollback/{version}", bidHandler.RollbackBidVersion).Methods("PUT")
+	router.HandleFunc("/api/bids/{bidId}/delete", bidHandler.DeleteBid).Methods("DELETE")
 }

@@ -1,13 +1,13 @@
-// File: main.go
-
 package main
 
 import (
 	"avitoTest/api"
 	"avitoTest/data/context"
+	"avitoTest/data/repositories/bid_repository"
 	"avitoTest/data/repositories/organization_repository"
 	"avitoTest/data/repositories/tender_repository"
 	"avitoTest/data/repositories/user_repository"
+	"avitoTest/services/bid_service"
 	"avitoTest/services/organization_service"
 	"avitoTest/services/tender_service"
 	"avitoTest/services/user_service"
@@ -24,11 +24,12 @@ func main() {
 	db := connectToDatabase(conf)
 	defer closeDatabaseConnection(db)
 
-	orgService, userService, tenderService := initializeServices(db)
+	orgService, userService, tenderService, bidService := initializeServices(db)
 	router := setupRouter(
 		orgService,
 		userService,
-		tenderService)
+		tenderService,
+		bidService)
 
 	startServer(conf.ServerAddress, router)
 }
@@ -73,28 +74,32 @@ func closeDatabaseConnection(db *gorm.DB) {
 func initializeServices(db *gorm.DB) (
 	organization_service.OrganizationService,
 	user_service.UserService,
-	tender_service.TenderService) {
+	tender_service.TenderService,
+	bid_service.BidService) {
 	shared.Logger.Info("Initializing repositories and services")
 
 	orgRepo := organization_repository.NewOrganizationRepository(db)
 	userRepo := user_repository.NewUserRepository(db)
 	tenderRepo := tender_repository.NewTenderRepository(db)
+	bidRepo := bid_repository.NewBidRepository(db)
 
 	orgService := organization_service.NewOrganizationService(orgRepo, userRepo)
 	userService := user_service.NewUserService(userRepo)
 	tenderService := tender_service.NewTenderService(tenderRepo, userRepo)
+	bidService := bid_service.NewBidService(bidRepo, orgRepo, userRepo, tenderRepo)
 
-	return orgService, userService, tenderService
+	return orgService, userService, tenderService, bidService
 }
 
 // setupRouter sets up the HTTP router with the necessary routes.
 func setupRouter(
 	orgService organization_service.OrganizationService,
 	userService user_service.UserService,
-	tenderService tender_service.TenderService) *mux.Router {
+	tenderService tender_service.TenderService,
+	bidService bid_service.BidService) *mux.Router {
 	shared.Logger.Info("Initializing routes")
 	router := mux.NewRouter()
-	api.InitRoutes(router, orgService, userService, tenderService)
+	api.InitRoutes(router, orgService, userService, tenderService, bidService)
 	return router
 }
 

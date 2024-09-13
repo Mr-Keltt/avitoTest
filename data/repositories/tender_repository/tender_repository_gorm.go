@@ -2,6 +2,7 @@ package tender_repository
 
 import (
 	"avitoTest/data/entities"
+	"avitoTest/shared/constants"
 	"context"
 	"errors"
 
@@ -116,6 +117,50 @@ func (r *tenderRepositoryGorm) FindUserOrganizationResponsibility(ctx context.Co
 		return nil, err
 	}
 	return &responsible, nil
+}
+
+// PublishTender updates the status of the tender to "PUBLISHED" without creating a new version.
+func (r *tenderRepositoryGorm) PublishTender(ctx context.Context, tenderID int) error {
+	var tender entities.Tender
+	if err := r.db.WithContext(ctx).First(&tender, tenderID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("tender not found")
+		}
+		return err
+	}
+
+	// Update the status to "PUBLISHED"
+	tender.Status = string(constants.TenderStatusPublished)
+
+	if err := r.db.WithContext(ctx).Save(&tender).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CloseTender updates the status of the tender to "CLOSED" without creating a new version.
+func (r *tenderRepositoryGorm) CloseTender(ctx context.Context, tenderID int) error {
+	var tender entities.Tender
+	if err := r.db.WithContext(ctx).First(&tender, tenderID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("tender not found")
+		}
+		return err
+	}
+
+	// Update the status to "CLOSED" if not already closed
+	if tender.Status == string(constants.TenderStatusClosed) {
+		return nil // Already closed, no need to update
+	}
+
+	tender.Status = string(constants.TenderStatusClosed)
+
+	if err := r.db.WithContext(ctx).Save(&tender).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Delete removes a tender by its ID from the database.

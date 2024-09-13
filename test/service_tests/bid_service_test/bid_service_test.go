@@ -250,14 +250,12 @@ func TestGetBidsByTenderID_NotFound(t *testing.T) {
 func TestGetBidsByUsername_Success(t *testing.T) {
 	mockBidRepo, _, mockUserRepo, service := setupMocks()
 
-	// Мокаем возврат пользователя по username
 	expectedUser := &entities.User{
 		ID:       1,
 		Username: "testuser",
 	}
 	mockUserRepo.On("FindByUsername", mock.Anything, "testuser").Return(expectedUser, nil)
 
-	// Мокаем возврат заявок, созданных пользователем
 	expectedBids := []*entities.Bid{
 		{
 			ID:             1,
@@ -278,7 +276,6 @@ func TestGetBidsByUsername_Success(t *testing.T) {
 	}
 	mockBidRepo.On("FindByCreatorID", mock.Anything, expectedUser.ID).Return(expectedBids, nil)
 
-	// Мокаем возврат последней версии для каждой заявки
 	latestVersion1 := &entities.BidVersion{
 		BidID:       1,
 		Version:     1,
@@ -296,22 +293,17 @@ func TestGetBidsByUsername_Success(t *testing.T) {
 	mockBidRepo.On("FindLatestVersion", mock.Anything, 1).Return(latestVersion1, nil)
 	mockBidRepo.On("FindLatestVersion", mock.Anything, 2).Return(latestVersion2, nil)
 
-	// Вызов метода сервиса
 	result, err := service.GetBidsByUsername(context.Background(), "testuser")
 
-	// Проверка корректности выполнения
 	assert.NoError(t, err)
 	assert.Len(t, result, 2)
 
-	// Отладочные сообщения
 	t.Logf("Result[0]: %+v", result[0])
 	t.Logf("Result[1]: %+v", result[1])
 
-	// Проверка данных первой заявки
 	assert.Equal(t, latestVersion1.Name, result[0].Name)
 	assert.Equal(t, latestVersion1.Description, result[0].Description)
 
-	// Проверка данных второй заявки
 	assert.Equal(t, latestVersion2.Name, result[1].Name)
 	assert.Equal(t, latestVersion2.Description, result[1].Description)
 

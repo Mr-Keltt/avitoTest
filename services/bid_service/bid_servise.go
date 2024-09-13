@@ -4,6 +4,7 @@ import (
 	"avitoTest/data/entities"
 	"avitoTest/data/repositories/bid_repository"
 	"avitoTest/data/repositories/organization_repository"
+	"avitoTest/data/repositories/tender_repository"
 	"avitoTest/data/repositories/user_repository"
 	"avitoTest/services/bid_service/bid_models"
 	"avitoTest/shared"
@@ -26,16 +27,22 @@ type BidService interface {
 }
 
 type bidService struct {
-	bidRepo  bid_repository.BidRepository
-	orgRepo  organization_repository.OrganizationRepository
-	userRepo user_repository.UserRepository
+	bidRepo    bid_repository.BidRepository
+	orgRepo    organization_repository.OrganizationRepository
+	userRepo   user_repository.UserRepository
+	tenderRepo tender_repository.TenderRepository
 }
 
-func NewBidService(bidRepo bid_repository.BidRepository, orgRepo organization_repository.OrganizationRepository, userRepo user_repository.UserRepository) BidService {
+func NewBidService(
+	bidRepo bid_repository.BidRepository,
+	orgRepo organization_repository.OrganizationRepository,
+	userRepo user_repository.UserRepository,
+	tenderRepo tender_repository.TenderRepository) BidService {
 	return &bidService{
-		bidRepo:  bidRepo,
-		orgRepo:  orgRepo,
-		userRepo: userRepo,
+		bidRepo:    bidRepo,
+		orgRepo:    orgRepo,
+		userRepo:   userRepo,
+		tenderRepo: tenderRepo,
 	}
 }
 
@@ -45,6 +52,10 @@ func (s *bidService) CreateBid(ctx context.Context, bid bid_models.BidCreateMode
 	if bid.Name == "" {
 		return nil, errors.New("name is required")
 	}
+
+	// Log the TenderID for additional debugging
+	shared.Logger.Infof("Creating bid with TenderID: %d", bid.TenderID)
+
 	if bid.TenderID <= 0 {
 		return nil, errors.New("invalid tender ID")
 	}
@@ -256,11 +267,25 @@ func (s *bidService) GetBidsByUsername(ctx context.Context, username string) ([]
 }
 
 func (s *bidService) ApproveBid(ctx context.Context, bidID, approverID int) error {
+	// Fetch the bid by ID
 	bid, err := s.bidRepo.FindByID(ctx, bidID)
 	if err != nil {
 		return err
 	}
 
+	// Log the organization ID to see if it's 0
+	shared.Logger.Infof("Bid organization ID: %d", bid.OrganizationID)
+
+	// Validate that the organization exists
+	if bid.OrganizationID <= 0 {
+		return errors.New("invalid organization ID")
+	}
+
+	if err := s.validateOrganizationExists(ctx, bid.OrganizationID); err != nil {
+		return err
+	}
+
+	// Check if the user is responsible for this organization
 	isResponsible, err := s.isUserResponsibleForOrganization(ctx, bid.OrganizationID, approverID)
 	if err != nil {
 		return err
@@ -269,21 +294,35 @@ func (s *bidService) ApproveBid(ctx context.Context, bidID, approverID int) erro
 		return errors.New("user is not responsible for the organization")
 	}
 
+	// Get the responsibles for this organization
 	responsibles, err := s.orgRepo.GetResponsibles(ctx, bid.OrganizationID)
 	if err != nil {
 		return err
 	}
 
+	if bid.Status == "REJECTED" {
+		return errors.New("bid already REJECTED")
+	}
+
+	// Calculate the quorum and increment approval count
 	quorum := min(3, len(responsibles))
 	bid.ApprovalCount++
 
+	// Update bid status if quorum is met
 	if bid.ApprovalCount >= quorum {
 		bid.Status = "APPROVED"
-		bid.Tender.Status = "CLOSED"
+
+		// Call CloseTender method instead of manually setting the tender's status
+		err := s.tenderRepo.CloseTender(ctx, bid.TenderID)
+
+		if err != nil {
+			return err
+		}
 	} else {
 		shared.Logger.Infof("Approval count: %d, Quorum: %d\n", bid.ApprovalCount, quorum)
 	}
 
+	// Update the bid in the repository
 	if err := s.bidRepo.Update(ctx, bid); err != nil {
 		return err
 	}
@@ -309,7 +348,6 @@ func (s *bidService) RejectBid(ctx context.Context, bidID, rejecterID int) error
 
 	//If there is at least one deviation, the status changes to "REJECTED"
 	bid.Status = "REJECTED"
-	bid.Tender.Status = "CLOSED"
 
 	// Обновим статус предложения
 	if err := s.bidRepo.Update(ctx, bid); err != nil {
@@ -365,6 +403,24 @@ func (s *bidService) DeleteBid(ctx context.Context, bidID int) error {
 	}
 
 	return s.bidRepo.Delete(ctx, bidID)
+}
+
+// validateTenderExists checks whether a tender exists before updating its status.
+func (s *bidService) validateOrganizationExists(ctx context.Context, organizationID int) error {
+	organization, _ := s.bidRepo.FindByID(ctx, organizationID)
+	if organization == nil {
+		return errors.New("organization not found")
+	}
+	return nil
+}
+
+// validateTenderExists checks whether a tender exists before updating its status.
+func (s *bidService) validateTenderExists(ctx context.Context, tenderID int) error {
+	tender, _ := s.tenderRepo.FindByID(ctx, tenderID)
+	if tender == nil {
+		return errors.New("tender not found")
+	}
+	return nil
 }
 
 // isUserResponsibleForOrganization checks whether the user is responsible for the organization.
